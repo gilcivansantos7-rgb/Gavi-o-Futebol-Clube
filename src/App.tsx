@@ -1572,11 +1572,9 @@ export default function App() {
           <div className="text-center mb-8">
             <motion.div 
               initial={{ scale: 0.8 }} animate={{ scale: 1 }}
-              className="w-32 h-32 bg-white rounded-full mx-auto mb-6 p-4 shadow-2xl relative"
+              className="w-40 h-40 mx-auto mb-6 relative flex items-center justify-center"
             >
-              <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center bg-white">
-                <img src={loginImageUrl} alt="Associação Gavião FC" className="w-full h-auto object-contain p-2" />
-              </div>
+              <img src={loginImageUrl} alt="Associação Gavião FC" className="w-full h-full object-contain" />
             </motion.div>
             <h1 className="text-3xl font-black text-white tracking-tighter mb-1">ASSOCIAÇÃO GAVIÃO FC</h1>
             <p className="text-slate-400 text-sm font-semibold uppercase tracking-widest opacity-80">
