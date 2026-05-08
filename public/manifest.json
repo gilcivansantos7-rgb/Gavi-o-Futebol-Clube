@@ -1,0 +1,21 @@
+{
+  "name": "Gestão - Associação Gavião Futebol Clube",
+  "short_name": "Gavião FC",
+  "description": "Sistema de Gestão da Associação Gavião Futebol Clube",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0047AB",
+  "theme_color": "#0047AB",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
