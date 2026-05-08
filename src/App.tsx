@@ -425,6 +425,7 @@ export default function App() {
   const [isSigningUp, setIsSigningUp] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
 
@@ -1478,7 +1479,15 @@ export default function App() {
     e.preventDefault();
     setLoginError(null);
     try {
-      const { error } = await supabase.auth.signUp({ email: username, password });
+      const { error } = await supabase.auth.signUp({ 
+        email: username, 
+        password,
+        options: {
+          data: {
+            name: fullName
+          }
+        }
+      });
       if (error) throw error;
       showFeedback('success', 'Cadastro realizado! Confirme seu e-mail.');
     } catch (err: any) {
@@ -1585,6 +1594,22 @@ export default function App() {
           <Card className="p-8 border-slate-700/50 bg-[#1e293b]/90 backdrop-blur-2xl shadow-2xl">
             <form onSubmit={isSigningUp ? handleSignUp : handleLogin} className="space-y-6">
               <div className="space-y-4">
+                {isSigningUp && (
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                      <UserIcon size={14} />
+                      Nome Completo
+                    </label>
+                    <input 
+                      type="text"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder="Seu nome completo"
+                      className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all"
+                      required
+                    />
+                  </div>
+                )}
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                     <UserIcon size={14} />
