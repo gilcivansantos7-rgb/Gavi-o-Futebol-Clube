@@ -6002,7 +6002,7 @@ function ArenaView({
                         </button>
                       </div>
                     </div>
-                    <div className="p-2 space-y-1">
+                    <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar max-h-[300px] md:max-h-none overscroll-contain">
                       {activeMembers.map(m => {
                         const stats = getPlayerStats(m.id);
                         const isSelected = selectedPlayers.includes(m.id);
@@ -6013,7 +6013,7 @@ function ArenaView({
                             disabled={stats.isSuspended}
                             onClick={() => handleTogglePlayer(m.id)}
                             className={cn(
-                              "w-full flex items-center justify-between p-3 rounded-xl transition-all text-left",
+                              "w-full flex items-center justify-between p-2 md:p-3 rounded-xl transition-all text-left",
                               isSelected 
                                 ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" 
                                 : "bg-slate-800/40 text-slate-400 hover:bg-slate-800 border border-transparent",
