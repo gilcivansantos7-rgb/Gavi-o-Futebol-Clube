@@ -6839,12 +6839,11 @@ function FinancialView({
       return d.getMonth() === filterMonth && d.getFullYear() === filterYear;
     };
 
-    const matchesDate = p.status === 'Pago' && p.paidAt 
-      ? isSamePeriod(p.paidAt)
-      : (p.month === filterMonth && p.year === filterYear);
+    const matchesReference = p.month === filterMonth && p.year === filterYear;
+    const matchesPaymentDate = p.status === 'Pago' && p.paidAt && isSamePeriod(p.paidAt);
 
     return (memberFilter === 'Todos' || p.memberId === memberFilter) &&
-           matchesDate &&
+           (matchesReference || matchesPaymentDate) &&
            (statusFilter === 'Todos' || p.status === statusFilter) &&
            (methodFilter === 'Todos' || p.paymentMethod === methodFilter);
   }), [payments, memberFilter, filterMonth, filterYear, statusFilter, methodFilter]);
@@ -6869,9 +6868,14 @@ function FinancialView({
   // --- Strict Financial Calculations (Source of Truth) ---
   
   // 1. Current Month Totals
-  const totalMembershipIncome = filteredPayments
-    .filter(p => p.status === 'Pago')
-    .reduce((acc, p) => acc + p.amount, 0);
+  const totalMembershipIncome = useMemo(() => payments
+    .filter(p => {
+      if (p.status !== 'Pago' || !p.paidAt) return false;
+      const d = parseISO(p.paidAt);
+      return d.getMonth() === filterMonth && d.getFullYear() === filterYear;
+    })
+    .reduce((acc, p) => acc + p.amount, 0)
+  , [payments, filterMonth, filterYear]);
     
   const totalOtherIncomeVal = filteredOtherIncome
     .reduce((acc, i) => acc + i.amount, 0);
