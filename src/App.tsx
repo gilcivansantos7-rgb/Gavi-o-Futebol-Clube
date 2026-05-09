@@ -5893,7 +5893,7 @@ function ArenaView({
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col">
+              <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0">
                 <AnimatePresence>
                   {!isExpanded && (
                     <motion.div 
@@ -5969,11 +5969,11 @@ function ArenaView({
                   )}
                 </AnimatePresence>
 
-                <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
+                <div className="flex-1 flex flex-col md:flex-row min-h-0">
                   {/* Player Selection */}
                   <div className={cn(
                     "border-r border-slate-700 flex flex-col bg-slate-900/10 transition-all duration-300",
-                    isExpanded ? "hidden md:flex md:w-0 overflow-hidden border-none opacity-0" : "w-full flex-1 md:flex-none md:w-80 opacity-100 min-h-[250px] md:min-h-0"
+                    isExpanded ? "hidden md:flex md:w-0 border-none opacity-0" : "w-full flex-1 md:flex-none md:w-80 opacity-100 max-h-[60vh] md:max-h-none"
                   )}>
                     <div className="p-4 bg-slate-900/50 border-b border-slate-700 sticky top-0 z-10">
                       <div className="flex items-center justify-between mb-3">
@@ -6001,7 +6001,10 @@ function ArenaView({
                         </button>
                       </div>
                     </div>
-                    <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
+                    <div 
+                      className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar min-h-0 overscroll-contain"
+                      style={{ WebkitOverflowScrolling: 'touch' }}
+                    >
                       {activeMembers.map(m => {
                         const stats = getPlayerStats(m.id);
                         const isSelected = selectedPlayers.includes(m.id);
