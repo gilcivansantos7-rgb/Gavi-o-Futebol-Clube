@@ -71,7 +71,8 @@ import {
   CheckCircle2,
   CalendarDays,
   Package,
-  Wrench
+  Wrench,
+  Shirt
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -4126,7 +4127,8 @@ function MembersView({
                   },
                   monthlyFee: formData.get('monthlyFee') ? Number(formData.get('monthlyFee')) : 50,
                   status: formData.get('status') as MemberStatus,
-                  photo: photoBase64 || undefined
+                  photo: photoBase64 || undefined,
+                  trainingUniformNumber: formData.get('trainingUniformNumber') as string || ''
                 };
                 
                 if (editingMember) {
@@ -4215,6 +4217,15 @@ function MembersView({
                         onChange={(e) => e.target.value = maskPhone(e.target.value)}
                         className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                         placeholder="(00) 00000-0000"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-slate-400 uppercase">Nº do Uniforme de Treino <span className="text-slate-500 text-[10px] lowercase italic">(Opcional)</span></label>
+                      <input 
+                        name="trainingUniformNumber"
+                        defaultValue={editingMember?.trainingUniformNumber}
+                        className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        placeholder="Ex: 10"
                       />
                     </div>
                   </div>
@@ -4397,6 +4408,13 @@ function MembersView({
                           <div>
                             <p className="text-[10px] text-slate-500 font-bold uppercase">Email</p>
                             <p className="text-sm text-white font-medium">{selectedMember.email || 'Não informado'}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-slate-800 rounded-lg text-blue-400"><Shirt size={16} /></div>
+                          <div>
+                            <p className="text-[10px] text-slate-500 font-bold uppercase">Uniforme de Treino</p>
+                            <p className="text-sm text-white font-medium">{selectedMember.trainingUniformNumber || 'Não informado'}</p>
                           </div>
                         </div>
                       </div>

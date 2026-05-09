@@ -57,6 +57,7 @@ export interface Member {
   monthlyFee: number;
   status: MemberStatus;
   photo?: string; // Base64 string
+  trainingUniformNumber?: string;
   createdAt: string;
   createdBy?: string; // User name
   badges?: Badge[];
