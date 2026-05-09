@@ -1335,21 +1335,19 @@ export default function App() {
 
     const validMemberIds = new Set(state.members.map(m => m.id));
 
-    const currentMonthPayments = state.payments.filter(p => 
-      p.month === currentMonth && p.year === currentYear && validMemberIds.has(p.memberId)
-    );
+    const membershipRevenue = state.payments.filter(p => {
+      if (p.status !== 'Pago' || !p.paidAt) return false;
+      const d = parseISO(p.paidAt);
+      return d.getMonth() === currentMonth && d.getFullYear() === currentYear && validMemberIds.has(p.memberId);
+    }).reduce((acc, p) => acc + p.amount, 0);
     
-    const revenue = currentMonthPayments
-      .filter(p => p.status === 'Pago')
-      .reduce((acc, p) => acc + p.amount, 0);
-
     const currentMonthOtherIncome = (state.otherIncome || []).filter(i => {
       const d = parseISO(i.date);
       return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
     }).reduce((acc, i) => acc + i.amount, 0);
 
-    const pending = currentMonthPayments
-      .filter(p => p.status === 'Pendente')
+    const pending = state.payments
+      .filter(p => p.status === 'Pendente' && p.month === currentMonth && p.year === currentYear && validMemberIds.has(p.memberId))
       .reduce((acc, p) => acc + p.amount, 0);
 
     const currentMonthExpenses = (state.expenses || []).filter(e => {
@@ -1411,8 +1409,8 @@ export default function App() {
     const totalBalance = initialBalance + totalIncome - totalExpenses;
 
     return { 
-      revenue: revenue + currentMonthOtherIncome, 
-      membershipRevenue: revenue,
+      revenue: membershipRevenue + currentMonthOtherIncome, 
+      membershipRevenue: membershipRevenue,
       otherRevenue: currentMonthOtherIncome,
       pending, 
       expenses: currentMonthExpenses, 
@@ -1439,9 +1437,15 @@ export default function App() {
     }).reverse();
 
     return last6Months.map(m => {
-      const monthPayments = state.payments.filter(p => 
-        p.month === m.month && p.year === m.year && state.members.some(mem => mem.id === p.memberId)
-      );
+      const paidMembership = state.payments.filter(p => {
+        if (p.status !== 'Pago' || !p.paidAt) return false;
+        const d = parseISO(p.paidAt);
+        return d.getMonth() === m.month && d.getFullYear() === m.year && state.members.some(mem => mem.id === p.memberId);
+      }).reduce((acc, p) => acc + p.amount, 0);
+
+      const pendingMembership = state.payments.filter(p => 
+        p.status === 'Pendente' && p.month === m.month && p.year === m.year && state.members.some(mem => mem.id === p.memberId)
+      ).reduce((acc, p) => acc + p.amount, 0);
       const monthOtherIncome = (state.otherIncome || []).filter(i => {
         const d = parseISO(i.date);
         return d.getMonth() === m.month && d.getFullYear() === m.year;
@@ -1454,8 +1458,8 @@ export default function App() {
 
       return {
         name: m.label,
-        pago: monthPayments.filter(p => p.status === 'Pago').reduce((acc, p) => acc + p.amount, 0) + monthOtherIncome,
-        pendente: monthPayments.filter(p => p.status === 'Pendente').reduce((acc, p) => acc + p.amount, 0),
+        pago: paidMembership + monthOtherIncome,
+        pendente: pendingMembership,
         despesas: monthExpenses
       };
     });
