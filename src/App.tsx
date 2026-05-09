@@ -6833,12 +6833,21 @@ function FinancialView({
   const [isIncomeConfirmOpen, setIsIncomeConfirmOpen] = useState(false);
   const [tempInitialBalance, setTempInitialBalance] = useState(initialBalance.toString());
 
-  const filteredPayments = useMemo(() => payments.filter(p => 
-    (memberFilter === 'Todos' || p.memberId === memberFilter) &&
-    (p.month === filterMonth && p.year === filterYear) &&
-    (statusFilter === 'Todos' || p.status === statusFilter) &&
-    (methodFilter === 'Todos' || p.paymentMethod === methodFilter)
-  ), [payments, memberFilter, filterMonth, filterYear, statusFilter, methodFilter]);
+  const filteredPayments = useMemo(() => payments.filter(p => {
+    const isSamePeriod = (dateStr: string) => {
+      const d = parseISO(dateStr);
+      return d.getMonth() === filterMonth && d.getFullYear() === filterYear;
+    };
+
+    const matchesDate = p.status === 'Pago' && p.paidAt 
+      ? isSamePeriod(p.paidAt)
+      : (p.month === filterMonth && p.year === filterYear);
+
+    return (memberFilter === 'Todos' || p.memberId === memberFilter) &&
+           matchesDate &&
+           (statusFilter === 'Todos' || p.status === statusFilter) &&
+           (methodFilter === 'Todos' || p.paymentMethod === methodFilter);
+  }), [payments, memberFilter, filterMonth, filterYear, statusFilter, methodFilter]);
 
   const filteredExpenses = useMemo(() => (expenses || []).filter(e => {
     const d = parseISO(e.date);
@@ -6874,9 +6883,11 @@ function FinancialView({
   // 2. Accumulated History (Saldo Anterior)
   const previousBalance = useMemo(() => {
     const membershipIncomeBefore = payments
-      .filter(p => p.status === 'Pago' && (
-        p.year < filterYear || (p.year === filterYear && p.month < filterMonth)
-      ))
+      .filter(p => {
+        if (p.status !== 'Pago' || !p.paidAt) return false;
+        const d = parseISO(p.paidAt);
+        return d.getFullYear() < filterYear || (d.getFullYear() === filterYear && d.getMonth() < filterMonth);
+      })
       .reduce((acc, p) => acc + p.amount, 0);
 
     const otherIncomeBefore = (otherIncome || [])
@@ -7517,7 +7528,11 @@ function FinancialView({
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {['PIX', 'Cartão', 'Dinheiro', 'Cheque'].map((method) => {
                 const membershipTotal = payments
-                  .filter(p => p.month === filterMonth && p.year === filterYear && p.status === 'Pago' && p.paymentMethod === method)
+                  .filter(p => {
+                    if (p.status !== 'Pago' || !p.paidAt) return false;
+                    const d = parseISO(p.paidAt);
+                    return d.getMonth() === filterMonth && d.getFullYear() === filterYear && p.paymentMethod === method;
+                  })
                   .reduce((acc, p) => acc + p.amount, 0);
                 
                 const otherTotal = otherIncome
