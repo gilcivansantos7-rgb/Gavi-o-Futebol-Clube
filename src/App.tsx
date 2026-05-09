@@ -5973,7 +5973,7 @@ function ArenaView({
                   {/* Player Selection */}
                   <div className={cn(
                     "border-r border-slate-700 flex flex-col bg-slate-900/10 transition-all duration-300",
-                    isExpanded ? "w-0 overflow-hidden md:w-0 border-none opacity-0" : "w-full md:w-80 opacity-100"
+                    isExpanded ? "hidden md:flex md:w-0 overflow-hidden border-none opacity-0" : "w-full md:w-80 opacity-100 max-h-[40vh] md:max-h-none"
                   )}>
                     <div className="p-4 bg-slate-900/50 border-b border-slate-700 sticky top-0 z-10">
                       <div className="flex items-center justify-between mb-3">
@@ -6036,7 +6036,7 @@ function ArenaView({
                   </div>
 
                   {/* Stats Input */}
-                  <div className="flex-1 flex flex-col bg-slate-900/5">
+                  <div className="flex-1 flex flex-col bg-slate-900/5 overflow-hidden">
                     <div className="p-4 bg-slate-900/50 border-b border-slate-700 sticky top-0 z-10 flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         {isExpanded && (
@@ -6056,7 +6056,7 @@ function ArenaView({
                         {isExpanded && <div className="ml-4 px-3 py-1 bg-slate-800 rounded-full text-slate-300">{selectedPlayers.length} Jogadores Selecionados</div>}
                       </div>
                     </div>
-                    <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar min-h-0">
                       {selectedPlayers.length > 0 ? (
                         selectedPlayers.map(id => (
                           <div 
