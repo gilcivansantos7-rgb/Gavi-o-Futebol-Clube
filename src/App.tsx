@@ -1700,10 +1700,10 @@ export default function App() {
 
       {/* Sidebar */}
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-50 w-64 bg-[#1e293b] border-r border-slate-700/50 transition-transform duration-300 transform lg:translate-x-0 lg:static lg:inset-0",
+        "fixed inset-y-0 left-0 z-50 w-64 bg-[#1e293b] border-r border-slate-700/50 transition-transform duration-300 transform lg:translate-x-0 lg:static lg:inset-0 overflow-y-auto",
         !isSidebarOpen && "-translate-x-full lg:translate-x-0"
       )}>
-        <div className="h-full flex flex-col">
+        <div className="min-h-full flex flex-col">
           <div className="p-6 flex items-center gap-3">
             <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-600/20">
               <TrendingUp className="text-white w-6 h-6" />
