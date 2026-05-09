@@ -5893,7 +5893,8 @@ function ArenaView({
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0">
+              <form onSubmit={handleSubmit} className="flex-1 overflow-hidden flex flex-col relative">
+                <div className="flex-1 overflow-y-auto custom-scrollbar">
                 <AnimatePresence>
                   {!isExpanded && (
                     <motion.div 
@@ -5969,7 +5970,7 @@ function ArenaView({
                   )}
                 </AnimatePresence>
 
-                <div className="flex-1 flex flex-col md:flex-row min-h-0">
+                <div className="flex flex-col md:flex-row md:flex-1 md:overflow-hidden">
                   {/* Player Selection */}
                   <div className={cn(
                     "border-r border-slate-700 flex flex-col bg-slate-900/10 transition-all duration-300",
@@ -6001,10 +6002,7 @@ function ArenaView({
                         </button>
                       </div>
                     </div>
-                    <div 
-                      className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar min-h-0 overscroll-contain"
-                      style={{ WebkitOverflowScrolling: 'touch' }}
-                    >
+                    <div className="p-2 space-y-1">
                       {activeMembers.map(m => {
                         const stats = getPlayerStats(m.id);
                         const isSelected = selectedPlayers.includes(m.id);
@@ -6039,7 +6037,7 @@ function ArenaView({
                   </div>
 
                   {/* Stats Input */}
-                  <div className="flex-1 flex flex-col bg-slate-900/5 overflow-hidden">
+                  <div className="flex-1 flex flex-col bg-slate-900/5">
                     <div className="p-4 bg-slate-900/50 border-b border-slate-700 sticky top-0 z-10 flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         {isExpanded && (
@@ -6059,7 +6057,7 @@ function ArenaView({
                         {isExpanded && <div className="ml-4 px-3 py-1 bg-slate-800 rounded-full text-slate-300">{selectedPlayers.length} Jogadores Selecionados</div>}
                       </div>
                     </div>
-                    <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar min-h-0">
+                    <div className="p-4 space-y-3">
                       {selectedPlayers.length > 0 ? (
                         selectedPlayers.map(id => (
                           <div 
@@ -6189,7 +6187,9 @@ function ArenaView({
                   </div>
                 </div>
 
-                <div className="p-6 border-t border-slate-700 bg-slate-900/50 flex flex-col sm:flex-row items-center justify-between gap-4">
+                </div>
+                
+                <div className="sticky bottom-0 p-6 border-t border-slate-700 bg-[#1e293b] flex flex-col sm:flex-row items-center justify-between gap-4 z-20">
                   <div className="flex items-center gap-6 text-[10px] font-black uppercase tracking-widest text-slate-500">
                     <div className="flex items-center gap-2">
                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
