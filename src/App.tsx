@@ -497,7 +497,7 @@ export default function App() {
           { data: usersData },
           { data: settingsData }
         ] = await Promise.all([
-          supabase.from('members').select('*'),
+          supabase.from('members').select('*').order('name', { ascending: true }),
           supabase.from('payments').select('*'),
           supabase.from('expenses').select('*'),
           supabase.from('other_incomes').select('*'),
@@ -3926,10 +3926,12 @@ function MembersView({
     }
   };
 
-  const filteredMembers = members.filter(m => 
-    m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    m.email?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredMembers = members
+    .filter(m => 
+      m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      m.email?.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }));
 
   const handleOpenDetail = (member: Member) => {
     setSelectedMemberId(member.id);
