@@ -5901,7 +5901,7 @@ function ArenaView({
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
-                      className="p-6 space-y-6 border-b border-slate-700 bg-slate-800/30 overflow-hidden"
+                      className="p-4 md:p-6 space-y-4 md:space-y-6 border-b border-slate-700 bg-slate-800/30 overflow-hidden"
                     >
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="space-y-1.5">
@@ -5948,7 +5948,7 @@ function ArenaView({
                               min="0"
                               value={headerValues.azul}
                               onChange={(e) => setHeaderValues(prev => ({ ...prev, azul: Number(e.target.value) }))}
-                              className="w-20 bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-center text-xl font-black text-white focus:ring-2 focus:ring-blue-500" 
+                              className="w-16 md:w-20 bg-slate-900 border border-slate-700 rounded-xl px-2 md:px-4 py-2 md:py-3 text-center text-lg md:text-xl font-black text-white focus:ring-2 focus:ring-blue-500" 
                             />
                           </div>
                           <div className="text-slate-600 font-black text-2xl mt-6">x</div>
@@ -5960,7 +5960,7 @@ function ArenaView({
                               min="0"
                               value={headerValues.amarelo}
                               onChange={(e) => setHeaderValues(prev => ({ ...prev, amarelo: Number(e.target.value) }))}
-                              className="w-20 bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-center text-xl font-black text-white focus:ring-2 focus:ring-yellow-500" 
+                              className="w-16 md:w-20 bg-slate-900 border border-slate-700 rounded-xl px-2 md:px-4 py-2 md:py-3 text-center text-lg md:text-xl font-black text-white focus:ring-2 focus:ring-yellow-500" 
                             />
                           </div>
                         </div>
@@ -5973,7 +5973,7 @@ function ArenaView({
                   {/* Player Selection */}
                   <div className={cn(
                     "border-r border-slate-700 flex flex-col bg-slate-900/10 transition-all duration-300",
-                    isExpanded ? "hidden md:flex md:w-0 overflow-hidden border-none opacity-0" : "w-full md:w-80 opacity-100 max-h-[40vh] md:max-h-none"
+                    isExpanded ? "hidden md:flex md:w-0 overflow-hidden border-none opacity-0" : "w-full flex-1 md:flex-none md:w-80 opacity-100 min-h-[250px] md:min-h-0"
                   )}>
                     <div className="p-4 bg-slate-900/50 border-b border-slate-700 sticky top-0 z-10">
                       <div className="flex items-center justify-between mb-3">
@@ -6175,7 +6175,7 @@ function ArenaView({
                           </div>
                         ))
                       ) : (
-                        <div className="h-full flex flex-col items-center justify-center text-slate-600 py-20">
+                        <div className="hidden md:flex h-full flex-col items-center justify-center text-slate-600 py-20">
                           <div className="w-20 h-20 bg-slate-800/50 rounded-full flex items-center justify-center mb-6 border border-slate-700/50 border-dashed">
                             <UserCheck size={32} className="opacity-20" />
                           </div>
