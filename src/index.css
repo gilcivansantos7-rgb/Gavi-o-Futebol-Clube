@@ -160,6 +160,7 @@
 .orb-arm {
   position: absolute;
   inset: 0;
+  z-index: 3;                /* always above shield img (z-index:2) */
   transform-origin: 50% 50%;
   pointer-events: none;
 }
@@ -202,16 +203,16 @@
 .orb-tip-7 { animation: orb-ccw 32s linear infinite; animation-delay: -15s; }
 .orb-tip-8 { animation: orb-cw  35s linear infinite; animation-delay: -20s; }
 
-/* --- Mobile: shrink radii --- */
+/* --- Mobile: keep ALL radii > 80px (shield radius) so icons stay visible --- */
 @media (max-width: 768px) {
-  .orb-r-outer { left: calc(50% + 115px - 16px); }
-  .orb-r-mid   { left: calc(50% + 78px  - 16px); }
-  .orb-r-inner { left: calc(50% + 48px  - 16px); }
+  .orb-r-outer { left: calc(50% + 135px - 16px); } /* 135px — clearly outside shield */
+  .orb-r-mid   { left: calc(50% + 108px - 16px); } /* 108px — outside shield */
+  .orb-r-inner { left: calc(50% + 88px  - 16px); } /* 88px  — just outside shield edge */
 }
 
-/* --- Very small screens: hide outer ring entirely --- */
+/* --- Very small screens (< 480px): hide outer, shrink a touch but stay outside shield --- */
 @media (max-width: 480px) {
   .orb-arm-1, .orb-arm-2, .orb-arm-7 { display: none; }
-  .orb-r-mid   { left: calc(50% + 68px - 16px); }
-  .orb-r-inner { left: calc(50% + 40px - 16px); }
+  .orb-r-mid   { left: calc(50% + 100px - 16px); } /* 100px */
+  .orb-r-inner { left: calc(50% + 84px  - 16px); } /* 84px — just past shield */
 }
