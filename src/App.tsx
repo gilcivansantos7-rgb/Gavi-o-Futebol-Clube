@@ -5050,25 +5050,30 @@ function ConquistasView({ members, trainings }: { members: Member[]; trainings: 
 
     const calculatedBadges: any[] = [];
 
-    // Ranking de Artilharia (TOP 3)
-    const goalscorerRanking = Object.entries(playerStats)
+    // Ranking de Artilharia (TOP 3) - Dense Ranking
+    const scoredPlayers = Object.entries(playerStats)
       .filter(([_, stats]) => stats.goals > 0)
-      .sort((a, b) => b[1].goals - a[1].goals || b[1].games - a[1].games)
-      .slice(0, 3);
+      .map(([id, stats]) => ({ id, ...stats }));
 
-    goalscorerRanking.forEach((rank, index) => {
-      const memberId = rank[0];
-      const stats = rank[1];
+    const distinctGoals = Array.from(new Set(scoredPlayers.map(p => p.goals))).sort((a, b) => b - a);
+
+    const goalscorerRanking = scoredPlayers
+      .map(p => ({ ...p, position: distinctGoals.indexOf(p.goals) + 1 }))
+      .filter(p => p.position <= 3);
+
+    goalscorerRanking.forEach((rank) => {
+      const memberId = rank.id;
+      const stats = rank;
       let type: 'diamante' | 'ouro' | 'bronze' = 'diamante';
       let label = 'Artilheiro do Mês';
       
-      if (index === 0) {
+      if (rank.position === 1) {
         type = 'diamante';
         label = 'Artilheiro do Mês';
-      } else if (index === 1) {
+      } else if (rank.position === 2) {
         type = 'ouro';
         label = 'Vice-Artilheiro';
-      } else if (index === 2) {
+      } else if (rank.position === 3) {
         type = 'bronze';
         label = '3º Colocado';
       }
@@ -5079,7 +5084,7 @@ function ConquistasView({ members, trainings }: { members: Member[]; trainings: 
         label,
         score: stats.goals,
         extraLabel: `${stats.goals} gols em ${stats.games} jogos`,
-        position: index + 1
+        position: rank.position
       });
     });
 
@@ -5139,16 +5144,21 @@ function ConquistasView({ members, trainings }: { members: Member[]; trainings: 
         });
       });
 
-      // Top 3 Goalscorers
-      const topScorers = Object.entries(playerStats)
+      // Top 3 Goalscorers (Dense Ranking)
+      const scoredPlayers = Object.entries(playerStats)
         .filter(([_, stats]) => stats.goals > 0)
-        .sort((a, b) => b[1].goals - a[1].goals || b[1].games - a[1].games)
-        .slice(0, 3);
+        .map(([id, stats]) => ({ id, ...stats }));
+        
+      const distinctGoals = Array.from(new Set(scoredPlayers.map(p => p.goals))).sort((a, b) => b - a);
+      
+      const topScorers = scoredPlayers
+        .map(p => ({ ...p, position: distinctGoals.indexOf(p.goals) + 1 }))
+        .filter(p => p.position <= 3);
 
-      topScorers.forEach((rank, index) => {
-        const type = index === 0 ? 'diamante' : index === 1 ? 'ouro' : 'bronze';
-        const label = index === 0 ? 'Artilheiro do Mês' : index === 1 ? 'Vice-Artilheiro' : '3º Colocado';
-        allHistorical.push({ memberId: rank[0], type, month: targetMonth, year: targetYear, label, position: index + 1 });
+      topScorers.forEach((rank) => {
+        const type = rank.position === 1 ? 'diamante' : rank.position === 2 ? 'ouro' : 'bronze';
+        const label = rank.position === 1 ? 'Artilheiro do Mês' : rank.position === 2 ? 'Vice-Artilheiro' : '3º Colocado';
+        allHistorical.push({ memberId: rank.id, type, month: targetMonth, year: targetYear, label, position: rank.position });
       });
 
       // Paredão
@@ -5208,9 +5218,9 @@ function ConquistasView({ members, trainings }: { members: Member[]; trainings: 
             <h4 className="text-sm font-black text-amber-500 uppercase tracking-[0.3em] mb-16 text-center relative z-10">Pódio de Artilharia</h4>
             
             <ThreeDPodium 
-              gold={artilheirosPodium[0] ? { ...artilheirosPodium[0], member: members.find(m => m.id === artilheirosPodium[0].memberId) } : undefined}
-              silver={artilheirosPodium[1] ? { ...artilheirosPodium[1], member: members.find(m => m.id === artilheirosPodium[1].memberId) } : undefined}
-              bronze={artilheirosPodium[2] ? { ...artilheirosPodium[2], member: members.find(m => m.id === artilheirosPodium[2].memberId) } : undefined}
+              gold={artilheirosPodium.filter(b => b.position === 1).map(b => ({ ...b, member: members.find(m => m.id === b.memberId) }))}
+              silver={artilheirosPodium.filter(b => b.position === 2).map(b => ({ ...b, member: members.find(m => m.id === b.memberId) }))}
+              bronze={artilheirosPodium.filter(b => b.position === 3).map(b => ({ ...b, member: members.find(m => m.id === b.memberId) }))}
             />
           </div>
         </div>
@@ -5267,11 +5277,11 @@ function ConquistasView({ members, trainings }: { members: Member[]; trainings: 
   );
 }
 
-function ThreeDPodium({ gold, silver, bronze }: { gold?: any, silver?: any, bronze?: any }) {
+function ThreeDPodium({ gold, silver, bronze }: { gold?: any[], silver?: any[], bronze?: any[] }) {
   return (
     <div className="flex items-end justify-center gap-2 sm:gap-4 md:gap-8 max-w-4xl mx-auto px-4 relative z-10">
       {/* Silver Column */}
-      {silver && (
+      {silver && silver.length > 0 && (
         <motion.div 
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
@@ -5279,18 +5289,24 @@ function ThreeDPodium({ gold, silver, bronze }: { gold?: any, silver?: any, bron
           className="flex-1 flex flex-col items-center group max-w-[150px]"
         >
           <div className="mb-4 relative">
-             <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full border-4 border-slate-300 overflow-hidden shadow-xl bg-slate-800">
-              {silver.member?.photo ? (
-                <img src={silver.member.photo} alt={silver.member.name} className="w-full h-full object-cover" />
-              ) : (
-                <UserIcon className="w-full h-full p-3 text-slate-500" />
-              )}
-            </div>
-            <div className="absolute -top-2 -right-2 bg-slate-300 text-slate-900 w-6 h-6 rounded-full flex items-center justify-center font-black text-[10px] shadow-lg border border-white">2º</div>
+             <div className="flex justify-center flex-wrap gap-1">
+               {silver.map((b: any, i: number) => (
+                 <div key={b.memberId} className="w-12 h-12 sm:w-16 sm:h-16 rounded-full border-4 border-slate-300 overflow-hidden shadow-xl bg-slate-800" style={{ zIndex: silver.length - i }}>
+                  {b.member?.photo ? (
+                    <img src={b.member.photo} alt={b.member.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <UserIcon className="w-full h-full p-3 text-slate-500" />
+                  )}
+                 </div>
+               ))}
+             </div>
+            <div className="absolute -top-2 -right-2 z-50 bg-slate-300 text-slate-900 w-6 h-6 rounded-full flex items-center justify-center font-black text-[10px] shadow-lg border border-white">2º</div>
           </div>
-          <div className="text-center mb-2 px-1">
-            <p className="text-[10px] font-black text-white uppercase truncate max-w-full">{silver.member?.name}</p>
-            <p className="text-lg font-black text-slate-300">{silver.score} <span className="text-[10px]">GOLS</span></p>
+          <div className="text-center mb-2 px-1 space-y-0.5">
+            {silver.map((b: any) => (
+              <p key={b.memberId} className="text-[10px] font-black text-white uppercase truncate max-w-full leading-tight">{b.member?.name}</p>
+            ))}
+            <p className="text-lg font-black text-slate-300 pt-1">{silver[0]?.score} <span className="text-[10px]">GOLS</span></p>
           </div>
           <div className="w-full h-32 sm:h-40 bg-gradient-to-t from-slate-600 via-slate-400 to-slate-200 rounded-t-2xl shadow-[inset_0_2px_10px_rgba(255,255,255,0.4),0_10px_30px_rgba(0,0,0,0.5)] flex items-start justify-center pt-4">
             <span className="text-slate-700/30 font-black text-4xl sm:text-6xl tracking-tighter italic">2</span>
@@ -5299,7 +5315,7 @@ function ThreeDPodium({ gold, silver, bronze }: { gold?: any, silver?: any, bron
       )}
 
       {/* Gold Column */}
-      {gold && (
+      {gold && gold.length > 0 && (
         <motion.div 
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
@@ -5314,18 +5330,24 @@ function ThreeDPodium({ gold, silver, bronze }: { gold?: any, silver?: any, bron
                 <Trophy size={48} className="text-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]" />
               </motion.div>
             </div>
-            <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-full border-4 border-yellow-400 overflow-hidden shadow-2xl shadow-yellow-500/20 bg-slate-800 ring-4 ring-yellow-400/20">
-              {gold.member?.photo ? (
-                <img src={gold.member.photo} alt={gold.member.name} className="w-full h-full object-cover" />
-              ) : (
-                <UserIcon className="w-full h-full p-4 text-slate-500" />
-              )}
+            <div className="flex justify-center flex-wrap gap-2">
+              {gold.map((b: any, i: number) => (
+                <div key={b.memberId} className="w-16 h-16 sm:w-24 sm:h-24 rounded-full border-4 border-yellow-400 overflow-hidden shadow-2xl shadow-yellow-500/20 bg-slate-800 ring-4 ring-yellow-400/20" style={{ zIndex: gold.length - i }}>
+                  {b.member?.photo ? (
+                    <img src={b.member.photo} alt={b.member.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <UserIcon className="w-full h-full p-4 text-slate-500" />
+                  )}
+                </div>
+              ))}
             </div>
-            <div className="absolute -top-2 -right-2 bg-yellow-400 text-slate-950 w-8 h-8 rounded-full flex items-center justify-center font-black text-xs shadow-lg border-2 border-white animate-pulse">1º</div>
+            <div className="absolute -top-2 -right-2 z-50 bg-yellow-400 text-slate-950 w-8 h-8 rounded-full flex items-center justify-center font-black text-xs shadow-lg border-2 border-white animate-pulse">1º</div>
           </div>
-          <div className="text-center mb-2 px-1">
-            <p className="text-xs font-black text-white uppercase truncate max-w-full">{gold.member?.name}</p>
-            <p className="text-2xl font-black text-yellow-400 drop-shadow-sm">{gold.score} <span className="text-xs">GOLS</span></p>
+          <div className="text-center mb-2 px-1 space-y-1">
+            {gold.map((b: any) => (
+              <p key={b.memberId} className="text-xs font-black text-white uppercase truncate max-w-full leading-tight">{b.member?.name}</p>
+            ))}
+            <p className="text-2xl font-black text-yellow-400 drop-shadow-sm pt-1">{gold[0]?.score} <span className="text-xs">GOLS</span></p>
           </div>
           <div className="w-full h-48 sm:h-64 bg-gradient-to-t from-orange-600 via-yellow-500 to-yellow-200 rounded-t-3xl shadow-[inset_0_2px_15px_rgba(255,255,255,0.6),0_15px_40px_rgba(0,0,0,0.6)] flex items-start justify-center pt-6">
             <span className="text-orange-900/20 font-black text-6xl sm:text-8xl tracking-tighter italic">1</span>
@@ -5334,7 +5356,7 @@ function ThreeDPodium({ gold, silver, bronze }: { gold?: any, silver?: any, bron
       )}
 
       {/* Bronze Column */}
-      {bronze && (
+      {bronze && bronze.length > 0 && (
         <motion.div 
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
@@ -5342,18 +5364,24 @@ function ThreeDPodium({ gold, silver, bronze }: { gold?: any, silver?: any, bron
           className="flex-1 flex flex-col items-center group max-w-[150px]"
         >
           <div className="mb-4 relative">
-             <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full border-4 border-amber-700/50 overflow-hidden shadow-xl bg-slate-800">
-              {bronze.member?.photo ? (
-                <img src={bronze.member.photo} alt={bronze.member.name} className="w-full h-full object-cover" />
-              ) : (
-                <UserIcon className="w-full h-full p-3 text-slate-500" />
-              )}
-            </div>
-            <div className="absolute -top-2 -right-2 bg-amber-700 text-white w-6 h-6 rounded-full flex items-center justify-center font-black text-[10px] shadow-lg border border-white">3º</div>
+             <div className="flex justify-center flex-wrap gap-1">
+               {bronze.map((b: any, i: number) => (
+                 <div key={b.memberId} className="w-12 h-12 sm:w-16 sm:h-16 rounded-full border-4 border-amber-700/50 overflow-hidden shadow-xl bg-slate-800" style={{ zIndex: bronze.length - i }}>
+                  {b.member?.photo ? (
+                    <img src={b.member.photo} alt={b.member.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <UserIcon className="w-full h-full p-3 text-slate-500" />
+                  )}
+                 </div>
+               ))}
+             </div>
+            <div className="absolute -top-2 -right-2 z-50 bg-amber-700 text-white w-6 h-6 rounded-full flex items-center justify-center font-black text-[10px] shadow-lg border border-white">3º</div>
           </div>
-          <div className="text-center mb-2 px-1">
-            <p className="text-[10px] font-black text-white uppercase truncate max-w-full">{bronze.member?.name}</p>
-            <p className="text-lg font-black text-amber-600">{bronze.score} <span className="text-[10px]">GOLS</span></p>
+          <div className="text-center mb-2 px-1 space-y-0.5">
+            {bronze.map((b: any) => (
+              <p key={b.memberId} className="text-[10px] font-black text-white uppercase truncate max-w-full leading-tight">{b.member?.name}</p>
+            ))}
+            <p className="text-lg font-black text-amber-600 pt-1">{bronze[0]?.score} <span className="text-[10px]">GOLS</span></p>
           </div>
           <div className="w-full h-24 sm:h-32 bg-gradient-to-t from-stone-800 via-amber-800 to-amber-600 rounded-t-2xl shadow-[inset_0_2px_10px_rgba(255,255,255,0.3),0_10px_20px_rgba(0,0,0,0.4)] flex items-start justify-center pt-3">
             <span className="text-black/20 font-black text-4xl sm:text-5xl tracking-tighter italic">3</span>
@@ -6426,16 +6454,27 @@ function HallOfFameView({
   }, [filteredTrainings, members]);
 
   const winners = useMemo(() => {
-    const artilharia = [...playerRanking].sort((a, b) => b.goals - a.goals || b.assists - a.assists || a.totalGames - b.totalGames);
-    const assistencias = [...playerRanking].sort((a, b) => b.assists - a.assists || b.goals - a.goals || a.totalGames - b.totalGames);
-    const goleiros = playerRanking.filter(p => p.isGK && p.gkGames > 0)
-      .sort((a, b) => (a.conceded / a.gkGames) - (b.conceded / b.gkGames) || b.gkGames - a.gkGames);
+    // Dense Ranking para Gols
+    const scoredPlayers = playerRanking.filter(p => p.goals > 0);
+    const distinctGoals = Array.from(new Set(scoredPlayers.map(p => p.goals))).sort((a, b) => b - a);
+    const artilheiros = scoredPlayers.filter(p => p.goals === distinctGoals[0]);
+    const vices = scoredPlayers.filter(p => p.goals === distinctGoals[1]);
+
+    // Dense Ranking para Assistências
+    const assistPlayers = playerRanking.filter(p => p.assists > 0);
+    const distinctAssists = Array.from(new Set(assistPlayers.map(p => p.assists))).sort((a, b) => b - a);
+    const assistentes = assistPlayers.filter(p => p.assists === distinctAssists[0]);
+
+    // Goleiros (menor média de gols sofridos)
+    const gkPlayers = playerRanking.filter(p => p.isGK && p.gkGames > 0);
+    gkPlayers.sort((a, b) => (a.conceded / a.gkGames) - (b.conceded / b.gkGames) || b.gkGames - a.gkGames);
+    const bestGKs = gkPlayers.length > 0 ? gkPlayers.filter(p => (p.conceded / p.gkGames) === (gkPlayers[0].conceded / gkPlayers[0].gkGames)) : [];
 
     return {
-      artilheiro: artilharia[0]?.goals > 0 ? artilharia[0] : null,
-      vice: (artilharia[1]?.goals > 0) ? artilharia[1] : null,
-      assistente: assistencias[0]?.assists > 0 ? assistencias[0] : null,
-      goleiro: goleiros[0] || null
+      artilheiros,
+      vices,
+      assistentes,
+      goleiros: bestGKs
     };
   }, [playerRanking]);
 
@@ -6549,87 +6588,95 @@ function HallOfFameView({
         
         <div className="flex items-end gap-2 sm:gap-8 max-w-5xl w-full">
           {/* Vice (Esquerda) */}
-          <div className="flex-1 pb-4">
-            {winners.vice && (
+          <div className="flex-1 pb-4 flex justify-center flex-wrap gap-2">
+            {winners.vices?.map(vice => (
               <RewardBadge 
+                key={vice.id}
                 type="prata" 
-                player={winners.vice} 
+                player={vice} 
                 label="Chuteira de Prata" 
                 description={`Vice-Artilheiro da Temporada ${year}`} 
               />
-            )}
+            ))}
           </div>
 
           {/* Artilheiro (Centro) */}
-          <div className="flex-1 pb-16">
-            {winners.artilheiro && (
+          <div className="flex-1 pb-16 flex justify-center flex-wrap gap-4">
+            {winners.artilheiros?.map(artilheiro => (
               <RewardBadge 
+                key={artilheiro.id}
                 type="ouro" 
-                player={winners.artilheiro} 
+                player={artilheiro} 
                 label="Chuteira de Ouro" 
                 description={`Maior Artilheiro da Temporada ${year}`} 
                 isLarge 
               />
-            )}
+            ))}
           </div>
 
           {/* Assistente (Direita) */}
-          <div className="flex-1 pb-4">
-            {winners.assistente && (
+          <div className="flex-1 pb-4 flex justify-center flex-wrap gap-2">
+            {winners.assistentes?.map(assistente => (
               <RewardBadge 
+                key={assistente.id}
                 type="maestro" 
-                player={winners.assistente} 
+                player={assistente} 
                 label="Maestro da Elite" 
                 description={`Líder de Assistências da Temporada ${year}`} 
               />
-            )}
+            ))}
           </div>
         </div>
 
         {/* Goleiro Special Positioning */}
-        {winners.goleiro && (
-          <div className="absolute -top-4 right-4 sm:right-12">
-            <motion.div 
-              initial={{ x: 20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              className="p-4 bg-slate-900/80 backdrop-blur-md rounded-2xl border border-red-500/30 shadow-2xl flex items-center gap-4 group cursor-help"
-              onMouseEnter={() => setActiveTooltip('goleiro')}
-              onMouseLeave={() => setActiveTooltip(null)}
-              onClick={() => setActiveTooltip(activeTooltip === 'goleiro' ? null : 'goleiro')}
-            >
-              <div 
-                className="relative flex items-center justify-center bg-transparent cursor-pointer"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedBadge({ url: LINK_GOLEIRO, title: "Muralha Inabalável", category: winners.goleiro!.name });
-                }}
+        {winners.goleiros && winners.goleiros.length > 0 && (
+          <div className="absolute -top-4 right-4 sm:right-12 flex flex-col gap-2">
+            {winners.goleiros.map(goleiro => (
+              <motion.div 
+                key={goleiro.id}
+                initial={{ x: 20, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                className="p-4 bg-slate-900/80 backdrop-blur-md rounded-2xl border border-red-500/30 shadow-2xl flex items-center gap-4 group cursor-help"
+                onMouseEnter={() => setActiveTooltip(`goleiro-${goleiro.id}`)}
+                onMouseLeave={() => setActiveTooltip(null)}
+                onClick={() => setActiveTooltip(activeTooltip === `goleiro-${goleiro.id}` ? null : `goleiro-${goleiro.id}`)}
               >
-                <img 
-                  src={LINK_GOLEIRO} 
-                  alt="" 
-                  className="w-[85px] h-auto object-contain transition-transform group-hover:scale-110 drop-shadow-[0_0_10px_rgba(239,68,68,0.4)]" 
-                />
-                <AnimatePresence>
-                  {activeTooltip === 'goleiro' && (
-                    <motion.div 
-                      initial={{ opacity: 0, x: 10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 10 }}
-                      className="absolute right-full mr-4 top-1/2 -translate-y-1/2 w-48 p-3 bg-slate-900 border border-red-500/30 rounded-xl shadow-2xl z-[100] text-right pointer-events-none"
-                    >
-                      <p className="text-[10px] font-black text-red-500 uppercase tracking-widest mb-1">Muralha Inabalável</p>
-                      <p className="text-[9px] text-slate-400 font-bold leading-tight">Goleiro com a menor média de gols sofridos em {year}.</p>
-                      <div className="absolute left-full top-1/2 -translate-y-1/2 w-2 h-2 bg-slate-900 border-t border-r border-red-500/30 rotate-45 -ml-1" />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-              <div className="pr-2">
-                <p className="text-[10px] font-black text-red-500 uppercase tracking-widest leading-none mb-1">Melhor Goleiro</p>
-                <h5 className="text-sm font-black text-white uppercase">{winners.goleiro.name}</h5>
-                <p className="text-[10px] font-bold text-slate-500 mt-0.5">Média: {(winners.goleiro.conceded / winners.goleiro.gkGames).toFixed(1)}</p>
-              </div>
-            </motion.div>
+                <div 
+                  className="relative flex items-center justify-center bg-transparent cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedBadge({ url: LINK_GOLEIRO, title: "Muralha Inabalável", category: goleiro.name });
+                  }}
+                >
+                  <img 
+                    src={LINK_GOLEIRO} 
+                    alt="" 
+                    className="w-[85px] h-auto object-contain transition-transform group-hover:scale-110 drop-shadow-[0_0_10px_rgba(239,68,68,0.4)]" 
+                  />
+                  <AnimatePresence>
+                    {activeTooltip === `goleiro-${goleiro.id}` && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.9 }}
+                        className="absolute top-full mt-2 w-48 bg-slate-800 text-white text-xs rounded-xl shadow-2xl border border-slate-700 overflow-hidden z-50 pointer-events-none"
+                      >
+                        <div className="bg-red-500/20 px-3 py-2 border-b border-red-500/30">
+                          <span className="font-bold text-red-400">Muralha Inabalável</span>
+                        </div>
+                        <div className="p-3 bg-slate-800">
+                          <p className="text-slate-300">Menor média de gols sofridos na temporada: <strong className="text-white">{(goleiro.conceded / goleiro.gkGames).toFixed(2)}</strong> ({goleiro.conceded} gols em {goleiro.gkGames} jogos)</p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] text-red-400 font-bold uppercase tracking-widest mb-0.5 drop-shadow-md">Paredão</p>
+                  <p className="font-black text-white text-sm">{goleiro.name}</p>
+                </div>
+              </motion.div>
+            ))}
           </div>
         )}
       </div>
@@ -6646,10 +6693,10 @@ function HallOfFameView({
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {playerRanking.sort((a, b) => b.goals - a.goals || b.assists - a.assists).map((p, idx) => {
-            const isArtilheiro = p.id === winners.artilheiro?.id;
-            const isVice = p.id === winners.vice?.id;
-            const isAssistente = p.id === winners.assistente?.id;
-            const isGoleiro = p.id === winners.goleiro?.id;
+            const isArtilheiro = winners.artilheiros?.some(w => w.id === p.id);
+            const isVice = winners.vices?.some(w => w.id === p.id);
+            const isAssistente = winners.assistentes?.some(w => w.id === p.id);
+            const isGoleiro = winners.goleiros?.some(w => w.id === p.id);
 
             let glowClass = "";
             let badgeInfo = null;
