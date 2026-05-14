@@ -1579,6 +1579,63 @@ export default function App() {
           <img src="https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=2070&auto=format&fit=crop" className="w-full h-full object-cover grayscale" />
         </div>
         
+        {/* Orbital Animation Layer */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 1 }}>
+          {/* Radial glow behind logo position */}
+          <div
+            className="login-glow absolute"
+            style={{
+              top: '50%',
+              left: '50%',
+              width: 340,
+              height: 340,
+              marginTop: -170,
+              marginLeft: -170,
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(234,179,8,0.18) 0%, rgba(59,130,246,0.22) 40%, transparent 70%)',
+            }}
+          />
+
+          {/* Orbit container — centred on the shield */}
+          <div
+            className="absolute"
+            style={{ top: '50%', left: '50%', width: 0, height: 0 }}
+          >
+            {/* Icon 1 — Trophy — outer / normal */}
+            <span className="orbit-icon orbit-icon-1" style={{ color: '#fbbf24', opacity: 0.45 }}>
+              <Trophy size={20} />
+            </span>
+            {/* Icon 2 — Medal — outer / reverse */}
+            <span className="orbit-icon orbit-icon-2" style={{ color: '#93c5fd', opacity: 0.40 }}>
+              <Medal size={18} />
+            </span>
+            {/* Icon 3 — Shield — mid / normal */}
+            <span className="orbit-icon orbit-icon-3" style={{ color: '#fcd34d', opacity: 0.38 }}>
+              <Shield size={18} />
+            </span>
+            {/* Icon 4 — Award — mid / reverse */}
+            <span className="orbit-icon orbit-icon-4" style={{ color: '#60a5fa', opacity: 0.42 }}>
+              <Award size={18} />
+            </span>
+            {/* Icon 5 — Gem — mid / normal */}
+            <span className="orbit-icon orbit-icon-5" style={{ color: '#a78bfa', opacity: 0.35 }}>
+              <Gem size={16} />
+            </span>
+            {/* Icon 6 — Shirt — inner / reverse */}
+            <span className="orbit-icon orbit-icon-6" style={{ color: '#fbbf24', opacity: 0.40 }}>
+              <Shirt size={16} />
+            </span>
+            {/* Icon 7 — Zap — outer / normal */}
+            <span className="orbit-icon orbit-icon-7" style={{ color: '#34d399', opacity: 0.35 }}>
+              <Zap size={16} />
+            </span>
+            {/* Icon 8 — Activity — inner / normal */}
+            <span className="orbit-icon orbit-icon-8" style={{ color: '#93c5fd', opacity: 0.38 }}>
+              <Activity size={15} />
+            </span>
+          </div>
+        </div>
+
         <motion.div 
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-md z-10"

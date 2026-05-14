@@ -141,3 +141,119 @@
     display: none;
   }
 }
+
+/* =============================================
+   LOGIN ORBITAL ANIMATION
+   ============================================= */
+
+@keyframes orbit {
+  from { transform: rotate(0deg) translateX(var(--orbit-radius)) rotate(0deg); }
+  to   { transform: rotate(360deg) translateX(var(--orbit-radius)) rotate(-360deg); }
+}
+
+@keyframes orbit-reverse {
+  from { transform: rotate(360deg) translateX(var(--orbit-radius)) rotate(-360deg); }
+  to   { transform: rotate(0deg) translateX(var(--orbit-radius)) rotate(0deg); }
+}
+
+@keyframes float {
+  0%, 100% { margin-top: 0px; }
+  50%       { margin-top: -8px; }
+}
+
+/* Glow pulse behind logo */
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50%       { opacity: 0.55; transform: scale(1.08); }
+}
+
+/* ---- Orbit tracks (8 icons, 3 radii) ---- */
+.orbit-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 36px;
+  height: 36px;
+  margin-top: -18px;
+  margin-left: -18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  animation: float 4s ease-in-out infinite;
+}
+
+/* Icon 1 — outer ring, normal, 18s */
+.orbit-icon-1 {
+  --orbit-radius: 180px;
+  animation: orbit 18s linear infinite, float 4.2s ease-in-out infinite;
+  animation-delay: 0s, 0s;
+}
+/* Icon 2 — outer ring, reverse, 25s */
+.orbit-icon-2 {
+  --orbit-radius: 180px;
+  animation: orbit-reverse 25s linear infinite, float 5s ease-in-out infinite;
+  animation-delay: 0s, -1.5s;
+}
+/* Icon 3 — mid ring, normal, 20s */
+.orbit-icon-3 {
+  --orbit-radius: 130px;
+  animation: orbit 20s linear infinite, float 3.8s ease-in-out infinite;
+  animation-delay: -4s, -0.8s;
+}
+/* Icon 4 — mid ring, reverse, 28s */
+.orbit-icon-4 {
+  --orbit-radius: 130px;
+  animation: orbit-reverse 28s linear infinite, float 4.5s ease-in-out infinite;
+  animation-delay: -10s, -2s;
+}
+/* Icon 5 — mid ring, normal, 22s */
+.orbit-icon-5 {
+  --orbit-radius: 130px;
+  animation: orbit 22s linear infinite, float 6s ease-in-out infinite;
+  animation-delay: -7s, -1s;
+}
+/* Icon 6 — inner ring, reverse, 15s */
+.orbit-icon-6 {
+  --orbit-radius: 75px;
+  animation: orbit-reverse 15s linear infinite, float 3.5s ease-in-out infinite;
+  animation-delay: -3s, -0.5s;
+}
+/* Icon 7 — outer ring, normal, 32s */
+.orbit-icon-7 {
+  --orbit-radius: 180px;
+  animation: orbit 32s linear infinite, float 5.5s ease-in-out infinite;
+  animation-delay: -15s, -3s;
+}
+/* Icon 8 — inner ring, normal, 35s */
+.orbit-icon-8 {
+  --orbit-radius: 75px;
+  animation: orbit 35s linear infinite, float 4s ease-in-out infinite;
+  animation-delay: -20s, -1.2s;
+}
+
+/* Glow behind logo */
+.login-glow {
+  animation: glow-pulse 3.5s ease-in-out infinite;
+}
+
+/* --- Mobile: reduce radii, hide outer icons --- */
+@media (max-width: 768px) {
+  .orbit-icon-1 { --orbit-radius: 145px; }
+  .orbit-icon-2 { --orbit-radius: 145px; }
+  .orbit-icon-7 { --orbit-radius: 145px; }
+  .orbit-icon-3 { --orbit-radius: 105px; }
+  .orbit-icon-4 { --orbit-radius: 105px; }
+  .orbit-icon-5 { --orbit-radius: 105px; }
+  /* keep inner icons as-is */
+}
+
+@media (max-width: 480px) {
+  /* On very small screens hide outer orbit entirely */
+  .orbit-icon-1,
+  .orbit-icon-2,
+  .orbit-icon-7 { display: none; }
+  .orbit-icon-3 { --orbit-radius: 90px; }
+  .orbit-icon-4 { --orbit-radius: 90px; }
+  .orbit-icon-5 { --orbit-radius: 90px; }
+}
