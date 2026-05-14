@@ -1218,6 +1218,21 @@ export default function App() {
     }
   };
 
+  const updateOtherIncome = async (id: string, updates: Partial<OtherIncome>) => {
+    try {
+      const { error } = await supabase.from('other_incomes').update(toSnakeCase(updates)).eq('id', id);
+      if (error) throw error;
+      setState(prev => ({
+        ...prev,
+        otherIncome: (prev.otherIncome || []).map(i => i.id === id ? { ...i, ...updates } : i)
+      }));
+      showFeedback('success', 'Receita atualizada!');
+    } catch (err: any) {
+      console.error(err);
+      showFeedback('error', `Erro ao atualizar receita: ${err.message}`);
+    }
+  };
+
   const updateInitialBalance = async (val: number) => {
     try {
       const { error } = await supabase.from('system_settings').update({ initial_balance: val }).eq('id', 'default');
@@ -2021,6 +2036,7 @@ export default function App() {
                   onUpdateExpense={updateExpense}
                   onDeleteExpense={deleteExpense}
                   onAddOtherIncome={addOtherIncome}
+                  onUpdateOtherIncome={updateOtherIncome}
                   onDeleteOtherIncome={deleteOtherIncome}
                   onUpdateInitialBalance={updateInitialBalance}
                   onRegisterRetroactive={registerRetroactivePayment}
@@ -6842,6 +6858,7 @@ function FinancialView({
   onUpdateExpense,
   onDeleteExpense,
   onAddOtherIncome,
+  onUpdateOtherIncome,
   onDeleteOtherIncome,
   onUpdateInitialBalance,
   onRegisterRetroactive,
@@ -6861,6 +6878,7 @@ function FinancialView({
   onUpdateExpense: any;
   onDeleteExpense: any;
   onAddOtherIncome: (description: string, amount: number, date: string, category: OtherIncomeCategory, paymentMethod: PaymentMethod, notes?: string) => void;
+  onUpdateOtherIncome: (id: string, updates: Partial<OtherIncome>) => void;
   onDeleteOtherIncome: (id: string) => void;
   onUpdateInitialBalance: (val: number) => void;
   onRegisterRetroactive: (memberId: string, month: number, year: number, amount: number, method: PaymentMethod, date: string, notes?: string, status?: PaymentStatus, origem?: string) => void;
@@ -6886,6 +6904,8 @@ function FinancialView({
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [incomeToDelete, setIncomeToDelete] = useState<OtherIncome | null>(null);
   const [isIncomeConfirmOpen, setIsIncomeConfirmOpen] = useState(false);
+  const [editingIncome, setEditingIncome] = useState<OtherIncome | null>(null);
+  const [isEditIncomeModalOpen, setIsEditIncomeModalOpen] = useState(false);
   const [tempInitialBalance, setTempInitialBalance] = useState(initialBalance.toString());
 
   const filteredPayments = useMemo(() => payments.filter(p => {
@@ -7725,12 +7745,22 @@ function FinancialView({
                 className: "text-right",
                 render: (income: OtherIncome) => (
                   isAdmin && (
-                    <button 
-                      onClick={() => { setIncomeToDelete(income); setIsIncomeConfirmOpen(true); }}
-                      className="p-2 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-red-400 transition-colors"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    <div className="flex items-center justify-end gap-1">
+                      <button 
+                        onClick={() => { setEditingIncome(income); setIsEditIncomeModalOpen(true); }}
+                        className="p-2 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-blue-400 transition-colors"
+                        title="Editar receita"
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                      <button 
+                        onClick={() => { setIncomeToDelete(income); setIsIncomeConfirmOpen(true); }}
+                        className="p-2 hover:bg-slate-700 rounded-lg text-slate-400 hover:text-red-400 transition-colors"
+                        title="Excluir receita"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   )
                 )
               }
@@ -7753,14 +7783,24 @@ function FinancialView({
                   <span className="text-emerald-400 font-bold">{formatCurrency(income.amount)}</span>
                 </div>
                 {isAdmin && (
-                  <Button 
-                    variant="danger" 
-                    className="w-full h-11"
-                    onClick={() => { setIncomeToDelete(income); setIsIncomeConfirmOpen(true); }}
-                  >
-                    <Trash2 size={16} />
-                    Excluir
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="secondary" 
+                      className="flex-1 h-11"
+                      onClick={() => { setEditingIncome(income); setIsEditIncomeModalOpen(true); }}
+                    >
+                      <Edit2 size={16} />
+                      Editar
+                    </Button>
+                    <Button 
+                      variant="danger" 
+                      className="flex-1 h-11"
+                      onClick={() => { setIncomeToDelete(income); setIsIncomeConfirmOpen(true); }}
+                    >
+                      <Trash2 size={16} />
+                      Excluir
+                    </Button>
+                  </div>
                 )}
               </div>
             )}
@@ -8585,6 +8625,111 @@ function FinancialView({
                   <Button variant="secondary" className="flex-1" onClick={() => setIsOtherIncomeModalOpen(false)}>Cancelar</Button>
                   <Button type="submit" className="flex-1 bg-emerald-600 hover:bg-emerald-500">
                     Adicionar Receita
+                  </Button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal de Edição de Outras Receitas */}
+      <AnimatePresence>
+        {isEditIncomeModalOpen && editingIncome && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => { setIsEditIncomeModalOpen(false); setEditingIncome(null); }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              className="relative w-full max-w-md bg-[#1e293b] rounded-2xl shadow-2xl border border-slate-700 overflow-hidden"
+            >
+              <div className="p-6 border-b border-slate-700 flex items-center justify-between">
+                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                  <Edit2 size={18} className="text-blue-400" />
+                  Editar Receita
+                </h3>
+                <button onClick={() => { setIsEditIncomeModalOpen(false); setEditingIncome(null); }} className="text-slate-400 hover:text-white">
+                  <X size={20} />
+                </button>
+              </div>
+              <form key={editingIncome.id} onSubmit={(e) => {
+                e.preventDefault();
+                const fd = new FormData(e.currentTarget);
+                onUpdateOtherIncome(editingIncome.id, {
+                  description: fd.get('description') as string,
+                  amount: Number(fd.get('amount')),
+                  date: new Date(fd.get('date') as string).toISOString(),
+                  category: fd.get('category') as OtherIncomeCategory,
+                  paymentMethod: fd.get('method') as PaymentMethod,
+                  notes: (fd.get('notes') as string) || undefined,
+                });
+                setIsEditIncomeModalOpen(false);
+                setEditingIncome(null);
+              }} className="p-6 space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-400 uppercase">Descrição</label>
+                  <input 
+                    name="description" required defaultValue={editingIncome.description}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                    placeholder="Ex: Patrocínio Empresa X"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-400 uppercase">Valor (R$)</label>
+                    <input 
+                      name="amount" type="number" step="0.01" required defaultValue={editingIncome.amount}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-400 uppercase">Data</label>
+                    <input 
+                      name="date" type="date" required defaultValue={format(parseISO(editingIncome.date), 'yyyy-MM-dd')}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-400 uppercase">Categoria</label>
+                    <select name="category" required defaultValue={editingIncome.category}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50">
+                      <option value="Patrocínio">Patrocínio</option>
+                      <option value="Doação">Doação</option>
+                      <option value="Evento">Evento</option>
+                      <option value="Venda">Venda</option>
+                      <option value="Contribuição">Contribuição</option>
+                      <option value="Outros">Outros</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-400 uppercase">Forma de Pagamento</label>
+                    <select name="method" required defaultValue={editingIncome.paymentMethod}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50">
+                      <option value="PIX">PIX</option>
+                      <option value="Cartão">Cartão</option>
+                      <option value="Dinheiro">Dinheiro</option>
+                      <option value="Cheque">Cheque</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-400 uppercase">Observações (Opcional)</label>
+                  <textarea 
+                    name="notes" defaultValue={editingIncome.notes || ''}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 min-h-[80px]"
+                    placeholder="Detalhes adicionais..."
+                  />
+                </div>
+                <div className="pt-4 flex gap-3">
+                  <Button variant="secondary" className="flex-1" onClick={() => { setIsEditIncomeModalOpen(false); setEditingIncome(null); }}>Cancelar</Button>
+                  <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-500">
+                    <Edit2 size={14} />
+                    Salvar Alterações
                   </Button>
                 </div>
               </form>
