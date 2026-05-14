@@ -1672,6 +1672,10 @@ export default function App() {
             </form>
           </Card>
         </motion.div>
+
+        <p className="mt-8 text-center text-xs text-slate-500 z-10">
+          © 2026 Associação Gavião Futebol Clube. Todos os direitos reservados.
+        </p>
       </div>
     );
   }
