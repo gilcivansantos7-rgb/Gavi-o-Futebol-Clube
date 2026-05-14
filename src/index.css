@@ -143,117 +143,75 @@
 }
 
 /* =============================================
-   LOGIN ORBITAL ANIMATION
+   LOGIN ORBITAL ANIMATION — arm + counter-rotate
    ============================================= */
-
-@keyframes orbit {
-  from { transform: rotate(0deg) translateX(var(--orbit-radius)) rotate(0deg); }
-  to   { transform: rotate(360deg) translateX(var(--orbit-radius)) rotate(-360deg); }
-}
-
-@keyframes orbit-reverse {
-  from { transform: rotate(360deg) translateX(var(--orbit-radius)) rotate(-360deg); }
-  to   { transform: rotate(0deg) translateX(var(--orbit-radius)) rotate(0deg); }
-}
-
-@keyframes float {
-  0%, 100% { margin-top: 0px; }
-  50%       { margin-top: -8px; }
-}
 
 /* Glow pulse behind logo */
 @keyframes glow-pulse {
-  0%, 100% { opacity: 0.35; transform: scale(1); }
-  50%       { opacity: 0.55; transform: scale(1.08); }
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50%       { opacity: 0.55; transform: scale(1.1); }
+}
+.login-glow { animation: glow-pulse 3.5s ease-in-out infinite; }
+
+/* Arm: fills the parent (shield div), rotates around its own center */
+@keyframes orb-cw  { to { transform: rotate(360deg); } }
+@keyframes orb-ccw { to { transform: rotate(-360deg); } }
+
+.orb-arm {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 50%;
+  pointer-events: none;
 }
 
-/* ---- Orbit tracks (8 icons, 3 radii) ---- */
-.orbit-icon {
+/* Tip: the actual icon, positioned along the arm at radius distance */
+.orb-tip {
   position: absolute;
   top: 50%;
-  left: 50%;
-  width: 36px;
-  height: 36px;
-  margin-top: -18px;
-  margin-left: -18px;
+  margin-top: -16px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  animation: float 4s ease-in-out infinite;
 }
 
-/* Icon 1 — outer ring, normal, 18s */
-.orbit-icon-1 {
-  --orbit-radius: 180px;
-  animation: orbit 18s linear infinite, float 4.2s ease-in-out infinite;
-  animation-delay: 0s, 0s;
-}
-/* Icon 2 — outer ring, reverse, 25s */
-.orbit-icon-2 {
-  --orbit-radius: 180px;
-  animation: orbit-reverse 25s linear infinite, float 5s ease-in-out infinite;
-  animation-delay: 0s, -1.5s;
-}
-/* Icon 3 — mid ring, normal, 20s */
-.orbit-icon-3 {
-  --orbit-radius: 130px;
-  animation: orbit 20s linear infinite, float 3.8s ease-in-out infinite;
-  animation-delay: -4s, -0.8s;
-}
-/* Icon 4 — mid ring, reverse, 28s */
-.orbit-icon-4 {
-  --orbit-radius: 130px;
-  animation: orbit-reverse 28s linear infinite, float 4.5s ease-in-out infinite;
-  animation-delay: -10s, -2s;
-}
-/* Icon 5 — mid ring, normal, 22s */
-.orbit-icon-5 {
-  --orbit-radius: 130px;
-  animation: orbit 22s linear infinite, float 6s ease-in-out infinite;
-  animation-delay: -7s, -1s;
-}
-/* Icon 6 — inner ring, reverse, 15s */
-.orbit-icon-6 {
-  --orbit-radius: 75px;
-  animation: orbit-reverse 15s linear infinite, float 3.5s ease-in-out infinite;
-  animation-delay: -3s, -0.5s;
-}
-/* Icon 7 — outer ring, normal, 32s */
-.orbit-icon-7 {
-  --orbit-radius: 180px;
-  animation: orbit 32s linear infinite, float 5.5s ease-in-out infinite;
-  animation-delay: -15s, -3s;
-}
-/* Icon 8 — inner ring, normal, 35s */
-.orbit-icon-8 {
-  --orbit-radius: 75px;
-  animation: orbit 35s linear infinite, float 4s ease-in-out infinite;
-  animation-delay: -20s, -1.2s;
-}
+/* Radius presets — calc based on arm center at 50% of 160px = 80px */
+.orb-r-outer { left: calc(50% + 145px - 16px); } /* 145px from shield center */
+.orb-r-mid   { left: calc(50% + 95px  - 16px); } /* 95px  */
+.orb-r-inner { left: calc(50% + 55px  - 16px); } /* 55px  */
 
-/* Glow behind logo */
-.login-glow {
-  animation: glow-pulse 3.5s ease-in-out infinite;
-}
+/* === Arm animations (unique durations + delays) === */
+.orb-arm-1 { animation: orb-cw  18s linear infinite; }
+.orb-arm-2 { animation: orb-ccw 25s linear infinite; }
+.orb-arm-3 { animation: orb-cw  20s linear infinite; animation-delay: -5s; }
+.orb-arm-4 { animation: orb-ccw 28s linear infinite; animation-delay: -10s; }
+.orb-arm-5 { animation: orb-cw  22s linear infinite; animation-delay: -7s; }
+.orb-arm-6 { animation: orb-ccw 15s linear infinite; animation-delay: -3s; }
+.orb-arm-7 { animation: orb-cw  32s linear infinite; animation-delay: -15s; }
+.orb-arm-8 { animation: orb-ccw 35s linear infinite; animation-delay: -20s; }
 
-/* --- Mobile: reduce radii, hide outer icons --- */
+/* === Tip counter-rotations (same duration = icon stays upright) === */
+.orb-tip-1 { animation: orb-ccw 18s linear infinite; }
+.orb-tip-2 { animation: orb-cw  25s linear infinite; }
+.orb-tip-3 { animation: orb-ccw 20s linear infinite; animation-delay: -5s; }
+.orb-tip-4 { animation: orb-cw  28s linear infinite; animation-delay: -10s; }
+.orb-tip-5 { animation: orb-ccw 22s linear infinite; animation-delay: -7s; }
+.orb-tip-6 { animation: orb-cw  15s linear infinite; animation-delay: -3s; }
+.orb-tip-7 { animation: orb-ccw 32s linear infinite; animation-delay: -15s; }
+.orb-tip-8 { animation: orb-cw  35s linear infinite; animation-delay: -20s; }
+
+/* --- Mobile: shrink radii --- */
 @media (max-width: 768px) {
-  .orbit-icon-1 { --orbit-radius: 145px; }
-  .orbit-icon-2 { --orbit-radius: 145px; }
-  .orbit-icon-7 { --orbit-radius: 145px; }
-  .orbit-icon-3 { --orbit-radius: 105px; }
-  .orbit-icon-4 { --orbit-radius: 105px; }
-  .orbit-icon-5 { --orbit-radius: 105px; }
-  /* keep inner icons as-is */
+  .orb-r-outer { left: calc(50% + 115px - 16px); }
+  .orb-r-mid   { left: calc(50% + 78px  - 16px); }
+  .orb-r-inner { left: calc(50% + 48px  - 16px); }
 }
 
+/* --- Very small screens: hide outer ring entirely --- */
 @media (max-width: 480px) {
-  /* On very small screens hide outer orbit entirely */
-  .orbit-icon-1,
-  .orbit-icon-2,
-  .orbit-icon-7 { display: none; }
-  .orbit-icon-3 { --orbit-radius: 90px; }
-  .orbit-icon-4 { --orbit-radius: 90px; }
-  .orbit-icon-5 { --orbit-radius: 90px; }
+  .orb-arm-1, .orb-arm-2, .orb-arm-7 { display: none; }
+  .orb-r-mid   { left: calc(50% + 68px - 16px); }
+  .orb-r-inner { left: calc(50% + 40px - 16px); }
 }

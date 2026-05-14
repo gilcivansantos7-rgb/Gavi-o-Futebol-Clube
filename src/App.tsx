@@ -1579,62 +1579,6 @@ export default function App() {
           <img src="https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=2070&auto=format&fit=crop" className="w-full h-full object-cover grayscale" />
         </div>
         
-        {/* Orbital Animation Layer */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 1 }}>
-          {/* Radial glow behind logo position */}
-          <div
-            className="login-glow absolute"
-            style={{
-              top: '50%',
-              left: '50%',
-              width: 340,
-              height: 340,
-              marginTop: -170,
-              marginLeft: -170,
-              borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(234,179,8,0.18) 0%, rgba(59,130,246,0.22) 40%, transparent 70%)',
-            }}
-          />
-
-          {/* Orbit container — centred on the shield */}
-          <div
-            className="absolute"
-            style={{ top: '50%', left: '50%', width: 0, height: 0 }}
-          >
-            {/* Icon 1 — Trophy — outer / normal */}
-            <span className="orbit-icon orbit-icon-1" style={{ color: '#fbbf24', opacity: 0.45 }}>
-              <Trophy size={20} />
-            </span>
-            {/* Icon 2 — Medal — outer / reverse */}
-            <span className="orbit-icon orbit-icon-2" style={{ color: '#93c5fd', opacity: 0.40 }}>
-              <Medal size={18} />
-            </span>
-            {/* Icon 3 — Shield — mid / normal */}
-            <span className="orbit-icon orbit-icon-3" style={{ color: '#fcd34d', opacity: 0.38 }}>
-              <Shield size={18} />
-            </span>
-            {/* Icon 4 — Award — mid / reverse */}
-            <span className="orbit-icon orbit-icon-4" style={{ color: '#60a5fa', opacity: 0.42 }}>
-              <Award size={18} />
-            </span>
-            {/* Icon 5 — Gem — mid / normal */}
-            <span className="orbit-icon orbit-icon-5" style={{ color: '#a78bfa', opacity: 0.35 }}>
-              <Gem size={16} />
-            </span>
-            {/* Icon 6 — Shirt — inner / reverse */}
-            <span className="orbit-icon orbit-icon-6" style={{ color: '#fbbf24', opacity: 0.40 }}>
-              <Shirt size={16} />
-            </span>
-            {/* Icon 7 — Zap — outer / normal */}
-            <span className="orbit-icon orbit-icon-7" style={{ color: '#34d399', opacity: 0.35 }}>
-              <Zap size={16} />
-            </span>
-            {/* Icon 8 — Activity — inner / normal */}
-            <span className="orbit-icon orbit-icon-8" style={{ color: '#93c5fd', opacity: 0.38 }}>
-              <Activity size={15} />
-            </span>
-          </div>
-        </div>
 
         <motion.div 
           initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
@@ -1644,8 +1588,54 @@ export default function App() {
             <motion.div 
               initial={{ scale: 0.8 }} animate={{ scale: 1 }}
               className="w-40 h-40 mx-auto mb-6 relative flex items-center justify-center"
+              style={{ overflow: 'visible' }}
             >
-              <img src={loginImageUrl} alt="Associação Gavião FC" className="w-full h-full object-contain" />
+              {/* === Glow behind shield === */}
+              <div className="login-glow absolute pointer-events-none" style={{
+                width: 280, height: 280,
+                top: '50%', left: '50%',
+                marginTop: -140, marginLeft: -140,
+                borderRadius: '50%',
+                background: 'radial-gradient(circle, rgba(234,179,8,0.22) 0%, rgba(59,130,246,0.20) 45%, transparent 70%)',
+                zIndex: 0,
+              }} />
+
+              {/* === Orbital arms — anchored to shield center === */}
+              {/* Icon 1: Trophy — outer CW 18s */}
+              <div className="orb-arm orb-arm-1">
+                <span className="orb-tip orb-tip-1 orb-r-outer" style={{ color: '#fbbf24', opacity: 0.55 }}><Trophy size={18} /></span>
+              </div>
+              {/* Icon 2: Medal — outer CCW 25s */}
+              <div className="orb-arm orb-arm-2">
+                <span className="orb-tip orb-tip-2 orb-r-outer" style={{ color: '#93c5fd', opacity: 0.50 }}><Medal size={16} /></span>
+              </div>
+              {/* Icon 3: Shield — mid CW 20s */}
+              <div className="orb-arm orb-arm-3">
+                <span className="orb-tip orb-tip-3 orb-r-mid" style={{ color: '#fcd34d', opacity: 0.48 }}><Shield size={16} /></span>
+              </div>
+              {/* Icon 4: Award — mid CCW 28s */}
+              <div className="orb-arm orb-arm-4">
+                <span className="orb-tip orb-tip-4 orb-r-mid" style={{ color: '#60a5fa', opacity: 0.52 }}><Award size={16} /></span>
+              </div>
+              {/* Icon 5: Gem — mid CW 22s */}
+              <div className="orb-arm orb-arm-5">
+                <span className="orb-tip orb-tip-5 orb-r-mid" style={{ color: '#a78bfa', opacity: 0.45 }}><Gem size={15} /></span>
+              </div>
+              {/* Icon 6: Shirt — inner CCW 15s */}
+              <div className="orb-arm orb-arm-6">
+                <span className="orb-tip orb-tip-6 orb-r-inner" style={{ color: '#fbbf24', opacity: 0.50 }}><Shirt size={15} /></span>
+              </div>
+              {/* Icon 7: Zap — outer CW 32s */}
+              <div className="orb-arm orb-arm-7">
+                <span className="orb-tip orb-tip-7 orb-r-outer" style={{ color: '#34d399', opacity: 0.45 }}><Zap size={15} /></span>
+              </div>
+              {/* Icon 8: Activity — inner CCW 35s */}
+              <div className="orb-arm orb-arm-8">
+                <span className="orb-tip orb-tip-8 orb-r-inner" style={{ color: '#93c5fd', opacity: 0.48 }}><Activity size={14} /></span>
+              </div>
+
+              {/* Shield image above orbits */}
+              <img src={loginImageUrl} alt="Associação Gavião FC" className="w-full h-full object-contain" style={{ position: 'relative', zIndex: 2 }} />
             </motion.div>
             <h1 className="text-3xl font-black text-white tracking-tighter mb-1">ASSOCIAÇÃO GAVIÃO FC</h1>
             <p className="text-slate-400 text-sm font-semibold uppercase tracking-widest opacity-80">
