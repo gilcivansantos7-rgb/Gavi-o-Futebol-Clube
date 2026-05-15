@@ -6,7 +6,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import html2canvas from 'html2canvas';
 import { toPng } from 'html-to-image';
-import { QRCodeCanvas } from 'qrcode.react';
 import { 
   LayoutDashboard, 
   Users, 
@@ -133,6 +132,58 @@ const LINK_PRATA = "https://i.postimg.cc/CKC7CnDr/IMG-9499-removebg-preview.png"
 const LINK_MAESTRO = "https://i.postimg.cc/fLwK8Wf8/IMG-9500-removebg-preview.png";
 const LINK_GOLEIRO = "https://i.postimg.cc/W3X7CR9V/IMG-9501-removebg-preview.png";
 const LINK_CLUB_LOGO = "https://i.postimg.cc/8zWqPsrR/Whats-App-Image-2026-05-06-at-10-39-54-removebg-preview.png"; // Novo link do Escudo Gavião Futebol Clube (PNG)
+
+function generatePixEMV(pixKey: string, merchantName: string, merchantCity: string, txid: string, amount: number) {
+  const pad = (str: string, len: number) => String(str).padStart(len, '0');
+  const payloadFormatIndicator = '000201';
+  const pointOfInitiationMethod = '010211';
+  
+  const merchantAccountInfo = `0014br.gov.bcb.pix01${pad(pixKey.length.toString(), 2)}${pixKey}`;
+  const merchantAccountInfoField = `26${pad(merchantAccountInfo.length.toString(), 2)}${merchantAccountInfo}`;
+  
+  const merchantCategoryCode = '52040000';
+  const transactionCurrency = '5303986';
+  
+  const formattedAmount = Number(amount).toFixed(2);
+  const transactionAmount = `54${pad(formattedAmount.length.toString(), 2)}${formattedAmount}`;
+  
+  const countryCode = '5802BR';
+  const nameField = `59${pad(merchantName.length.toString(), 2)}${merchantName}`;
+  const cityField = `60${pad(merchantCity.length.toString(), 2)}${merchantCity}`;
+  
+  const txidStr = txid ? `05${pad(txid.length.toString(), 2)}${txid}` : '0503***';
+  const additionalDataField = `62${pad(txidStr.length.toString(), 2)}${txidStr}`;
+  
+  const payloadStr = [
+    payloadFormatIndicator,
+    pointOfInitiationMethod,
+    merchantAccountInfoField,
+    merchantCategoryCode,
+    transactionCurrency,
+    transactionAmount,
+    countryCode,
+    nameField,
+    cityField,
+    additionalDataField,
+    '6304'
+  ].join('');
+
+  const poly = 0x1021;
+  let crc = 0xFFFF;
+  for (let i = 0; i < payloadStr.length; i++) {
+    crc ^= payloadStr.charCodeAt(i) << 8;
+    for (let j = 0; j < 8; j++) {
+      if ((crc & 0x8000) !== 0) {
+        crc = (crc << 1) ^ poly;
+      } else {
+        crc = crc << 1;
+      }
+    }
+  }
+  const crcHex = (crc & 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
+  
+  return payloadStr + crcHex;
+}
 
 import { AppState, Member, Payment, Expense, OtherIncome, OtherIncomeCategory, MemberStatus, PaymentStatus, PaymentMethod, ExpenseCategory, AssociationInfo, User, UserRole, LoggedUser, Training, MatchPlayer, FinesConfig, OuvidoriaMessage, GalleryPhoto, Notice, NoticeCategory, InventoryCategory, InventoryCondition, InventoryHistory, InventoryItem, AppNotification } from './types';
 import { cn, getSecondSaturday, formatCurrency, toCamelCase, toSnakeCase, mapMemberFromDB, mapMemberToDB, mapTrainingFromDB, mapTrainingToDB } from './lib/utils';
@@ -578,9 +629,9 @@ export default function App() {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   
-  const createNotification = async (titulo: string, mensagem: string, modulo: string, linkDestino?: string, referenciaId?: string) => {
+  const createNotification = async (titulo: string, mensagem: string, modulo: string) => {
     try {
-      const newNotif = { titulo, mensagem, modulo, link_destino: linkDestino, referencia_id: referenciaId };
+      const newNotif = { titulo, mensagem, modulo };
       const { data, error } = await supabase.from('notificacoes').insert([newNotif]).select();
       if (!error && data) {
         setNotifications(prev => [data[0], ...prev]);
@@ -672,7 +723,7 @@ export default function App() {
       if (error) throw error;
       setOuvidoriaMessages([newMessage, ...ouvidoriaMessages]);
       showFeedback('success', 'Mensagem enviada com sucesso!');
-      createNotification(`Nova Mensagem na Ouvidoria: ${assunto}`, `${currentUser || "Um membro"} enviou uma mensagem na ouvidoria.`, 'Ouvidoria', 'ouvidoria', String(newMessage.id));
+      createNotification(`Nova Mensagem na Ouvidoria: ${assunto}`, `${currentUser || "Um membro"} enviou uma mensagem na ouvidoria.`, 'Ouvidoria');
     } catch (err: any) {
       console.error(err);
       showFeedback('error', `Erro ao enviar mensagem: ${err.message}`);
@@ -700,7 +751,7 @@ export default function App() {
     try {
       const { error } = await supabase.from('ouvidoria_messages').delete().eq('id', id);
       if (error) throw error;
-      await supabase.from('notificacoes').delete().eq('referencia_id', String(id));
+      // await supabase.from('notificacoes').delete().eq('referencia_id', String(id)); // Desativado para reconciliação básica
       setOuvidoriaMessages(prev => prev.filter(msg => String(msg.id).trim() !== String(id).trim()));
       alert("Excluído!");
     } catch (err: any) {
@@ -1093,7 +1144,7 @@ export default function App() {
       }));
       showFeedback('success', `Status alterado para ${newStatus}`);
       if (newStatus === 'Pago') {
-        createNotification('Mensalidade Paga', `O usuário ${currentUser || 'Sistema'} registrou o pagamento de ${p.memberName} no valor de ${formatCurrency(finalAmount)}`, 'Financeiro', 'financial', String(paymentId));
+        createNotification('Mensalidade Paga', `O usuário ${currentUser || 'Sistema'} registrou o pagamento de ${p.memberName} no valor de ${formatCurrency(finalAmount)}`, 'Financeiro');
       }
     } catch (err) {
       console.error(err);
@@ -1216,7 +1267,7 @@ export default function App() {
         expenses: [...(prev.expenses || []), newExpense]
       }));
       showFeedback('success', 'Despesa salva no banco!');
-      createNotification('Nova Despesa Registrada', `O usuário ${currentUser || 'Sistema'} registrou a despesa "${description}" no valor de ${formatCurrency(amount)}`, 'Financeiro', 'financial', expenseId);
+      createNotification('Nova Despesa Registrada', `O usuário ${currentUser || 'Sistema'} registrou a despesa "${description}" no valor de ${formatCurrency(amount)}`, 'Financeiro');
     } catch (err) {
       console.error(err);
       showFeedback('error', 'Erro ao salvar despesa.');
@@ -1240,7 +1291,7 @@ export default function App() {
   const deleteExpense = async (id: string) => {
     try {
       await supabase.from('expenses').delete().eq('id', id);
-      await supabase.from('notificacoes').delete().eq('referencia_id', id);
+      // await supabase.from('notificacoes').delete().eq('referencia_id', id); // Desativado para reconciliação básica
       setState(prev => ({
         ...prev,
         expenses: (prev.expenses || []).filter(e => e.id !== id)
@@ -1272,7 +1323,7 @@ export default function App() {
         otherIncome: [...(prev.otherIncome || []), newIncome]
       }));
       showFeedback('success', 'Receita salva no banco!');
-      createNotification('Nova Receita Registrada', `O usuário ${currentUser || 'Sistema'} registrou a receita "${description}" no valor de ${formatCurrency(amount)}`, 'Financeiro', 'financial', incomeId);
+      createNotification('Nova Receita Registrada', `O usuário ${currentUser || 'Sistema'} registrou a receita "${description}" no valor de ${formatCurrency(amount)}`, 'Financeiro');
     } catch (err) {
       console.error(err);
       showFeedback('error', 'Erro ao salvar receita.');
@@ -1282,7 +1333,7 @@ export default function App() {
   const deleteOtherIncome = async (id: string) => {
     try {
       await supabase.from('other_incomes').delete().eq('id', id);
-      await supabase.from('notificacoes').delete().eq('referencia_id', id);
+      // await supabase.from('notificacoes').delete().eq('referencia_id', id); // Desativado para reconciliação básica
       setState(prev => ({
         ...prev,
         otherIncome: (prev.otherIncome || []).filter(i => i.id !== id)
@@ -1612,7 +1663,7 @@ export default function App() {
         notices: [newNotice, ...(prev.notices || [])]
       }));
       showFeedback('success', 'Aviso publicado no mural!');
-      createNotification(`Aviso no Mural: ${notice.title}`, `Publicado por ${currentUser || notice.author} no mural de avisos`, 'Mural', 'mural', newNotice.id);
+      createNotification(`Aviso no Mural: ${notice.title}`, `Publicado por ${currentUser || notice.author}`, 'Mural');
     } catch (err: any) {
       console.error(err);
       showFeedback('error', `Erro ao publicar aviso: ${err.message}`);
@@ -1643,7 +1694,7 @@ export default function App() {
     try {
       const { error } = await supabase.from('notices').delete().eq('id', id);
       if (error) throw error;
-      await supabase.from('notificacoes').delete().eq('referencia_id', id);
+      // await supabase.from('notificacoes').delete().eq('referencia_id', id); // Desativado para reconciliação básica
       setState(prev => ({
         ...prev,
         notices: (prev.notices || []).filter(n => n.id !== id)
@@ -4050,7 +4101,7 @@ function MembershipCard({ member, associationInfo }: { member: Member; associati
 
             <div className="w-20 flex flex-col items-center justify-center gap-2 shrink-0">
               <div className="p-1.5 bg-white rounded-lg shadow-xl">
-                <QRCodeCanvas value={`GAVIAOFC:${member.id}`} size={56} level="H" />
+                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=56x56&data=${encodeURIComponent(`GAVIAOFC:${member?.id}`)}`} alt="QR Code" className="w-14 h-14" />
               </div>
               <p className="text-[6px] font-black text-slate-400 uppercase text-center tracking-tighter">Validação Clube</p>
             </div>
@@ -8530,7 +8581,7 @@ function FinancialView({
             >
               <div className="p-6 border-b border-slate-700 flex justify-between items-center">
                 <h3 className="text-lg font-bold text-white">
-                  {selectedPayment.status === 'Pago' ? 'Editar Pagamento' : 'Confirmar Pagamento'}
+                  {selectedPayment?.status === 'Pago' ? 'Editar Pagamento' : 'Confirmar Pagamento'}
                 </h3>
                 <button onClick={() => setIsPaymentModalOpen(false)} className="text-slate-400 hover:text-white">
                   <X size={20} />
@@ -8543,9 +8594,9 @@ function FinancialView({
                 const amount = parseFloat(formData.get('amount') as string);
                 const method = formData.get('method') as PaymentMethod;
                 
-                if (selectedPayment.status === 'Pendente') {
+                if (selectedPayment?.status === 'Pendente') {
                   onToggleStatus(selectedPayment.id, amount, method);
-                } else {
+                } else if (selectedPayment?.status === 'Pago') {
                   onUpdatePayment(selectedPayment.id, { amount, paymentMethod: method });
                 }
                 
@@ -8554,9 +8605,49 @@ function FinancialView({
               }} className="p-6 space-y-4">
                 <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700">
                   <p className="text-xs font-bold text-slate-500 uppercase mb-1">Sócio</p>
-                  <p className="text-sm font-bold text-white">{getMemberName(selectedPayment.memberId)}</p>
-                  <p className="text-xs text-slate-400 mt-1">Ref: {format(new Date(selectedPayment.year, selectedPayment.month, 1), 'MMMM yyyy', { locale: ptBR })}</p>
+                  <p className="text-sm font-bold text-white">{getMemberName(selectedPayment?.memberId)}</p>
+                  <p className="text-xs text-slate-400 mt-1">Ref: {format(new Date(selectedPayment?.year || 2024, selectedPayment?.month || 0, 1), 'MMMM yyyy', { locale: ptBR })}</p>
                 </div>
+
+                {selectedPayment?.status === 'Pendente' && (
+                  <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl flex flex-col items-center justify-center space-y-4">
+                    <p className="text-xs font-bold text-blue-400 uppercase tracking-widest text-center">Pix Copia e Cola / QR Code</p>
+                    <div className="p-3 bg-white rounded-xl shadow-lg">
+                      <img 
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(
+                          generatePixEMV(
+                            'associacaogaviaofc@gmail.com',
+                            'GILCIVAN DOS SANTOS PEREIRA',
+                            'SOUSA-PB',
+                            `MENSALIDADE_${format(new Date(selectedPayment?.year || 2024, selectedPayment?.month || 0, 1), 'MMMM', { locale: ptBR }).toUpperCase()}_${(getMemberName(selectedPayment?.memberId) || '').split(' ')[0].toUpperCase()}`.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, ""),
+                            selectedPayment?.amount || 0
+                          )
+                        )}`} 
+                        alt="Pix QR Code" 
+                        className="w-40 h-40" 
+                      />
+                    </div>
+                    <div className="w-full">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const pixStr = generatePixEMV(
+                            'associacaogaviaofc@gmail.com',
+                            'GILCIVAN DOS SANTOS PEREIRA',
+                            'SOUSA-PB',
+                            `MENSALIDADE_${format(new Date(selectedPayment?.year || 2024, selectedPayment?.month || 0, 1), 'MMMM', { locale: ptBR }).toUpperCase()}_${(getMemberName(selectedPayment?.memberId) || '').split(' ')[0].toUpperCase()}`.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, ""),
+                            selectedPayment?.amount || 0
+                          );
+                          navigator.clipboard.writeText(pixStr);
+                          alert('Código Pix Copiado!');
+                        }}
+                        className="w-full py-2.5 rounded-lg text-sm font-bold transition-all border bg-slate-800 text-slate-300 hover:bg-slate-700 border-slate-700"
+                      >
+                        Copiar Código Pix
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Valor do Pagamento (R$)</label>
@@ -8564,7 +8655,7 @@ function FinancialView({
                     name="amount"
                     type="number"
                     step="0.01"
-                    defaultValue={selectedPayment.amount}
+                    defaultValue={selectedPayment?.amount}
                     required
                     className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
                   />
@@ -8579,7 +8670,7 @@ function FinancialView({
                           type="radio" 
                           name="method" 
                           value={m} 
-                          defaultChecked={selectedPayment.paymentMethod === m || (m === 'PIX' && !selectedPayment.paymentMethod)}
+                          defaultChecked={selectedPayment?.paymentMethod === m || (m === 'PIX' && !selectedPayment?.paymentMethod)}
                           className="peer sr-only"
                         />
                         <div className="flex items-center gap-2 p-3 bg-slate-800 border border-slate-700 rounded-xl text-slate-400 peer-checked:border-blue-500 peer-checked:bg-blue-500/10 peer-checked:text-blue-400 transition-all hover:bg-slate-700/50">
@@ -8597,7 +8688,7 @@ function FinancialView({
                 <div className="pt-4 flex gap-3">
                   <Button type="button" variant="ghost" className="flex-1" onClick={() => setIsPaymentModalOpen(false)}>Cancelar</Button>
                   <Button type="submit" className="flex-1">
-                    {selectedPayment.status === 'Pago' ? 'Salvar Alterações' : 'Confirmar Recebimento'}
+                    {selectedPayment?.status === 'Pago' ? 'Salvar Alterações' : 'Confirmar Recebimento'}
                   </Button>
                 </div>
               </form>

@@ -11,8 +11,6 @@ export interface AppNotification {
   lida: boolean;
   modulo: string;
   criado_em: string;
-  link_destino?: string;
-  referencia_id?: string;
 }
 
 export interface LoggedUser {
