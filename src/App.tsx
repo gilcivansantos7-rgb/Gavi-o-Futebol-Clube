@@ -132,6 +132,7 @@ const LINK_PRATA = "https://i.postimg.cc/CKC7CnDr/IMG-9499-removebg-preview.png"
 const LINK_MAESTRO = "https://i.postimg.cc/fLwK8Wf8/IMG-9500-removebg-preview.png";
 const LINK_GOLEIRO = "https://i.postimg.cc/W3X7CR9V/IMG-9501-removebg-preview.png";
 const LINK_CLUB_LOGO = "https://i.postimg.cc/8zWqPsrR/Whats-App-Image-2026-05-06-at-10-39-54-removebg-preview.png"; // Novo link do Escudo Gavião Futebol Clube (PNG)
+const LINK_SIGNATURE = "https://i.postimg.cc/28n3gGRk/Chat-GPT-Image-14-de-mai-de-2026-23-40-44-removebg-preview.png";
 
 function generatePixEMV(pixKey: string, merchantName: string, merchantCity: string, txid: string, amount: number) {
   const pad = (str: string, len: number) => String(str).padStart(len, '0');
@@ -7539,6 +7540,13 @@ function FinancialView({
     doc.text(`Status: CONFIRMADO`, 12, 107);
 
     // 6. Signature
+    try {
+      // Signature image placed above the line
+      doc.addImage(LINK_SIGNATURE, 'PNG', pageWidth / 2 - 20, 115, 40, 15);
+    } catch (e) {
+      console.warn("Signature could not be loaded");
+    }
+    
     doc.line(30, 130, pageWidth - 30, 130);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
