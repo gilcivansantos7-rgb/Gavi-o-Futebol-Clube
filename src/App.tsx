@@ -7465,6 +7465,30 @@ function FinancialView({
     doc.text(`SALDO ATUAL EM CAIXA:`, 18, boxY + 45);
     doc.text(formatCurrency(currentTotalBalance), 190, boxY + 45, { align: 'right' });
 
+    // --- ASSINATURA NO FINAL DO RELATÓRIO ---
+    const sigY = boxY + 75;
+    // Verifica se precisa de nova página para a assinatura
+    const finalSigY = sigY > 270 ? (doc.addPage(), 40) : sigY;
+
+    try {
+      doc.addImage(LINK_SIGNATURE, 'PNG', pageWidth / 2 - 25, finalSigY - 18, 50, 18);
+    } catch (e) {
+      console.warn("Signature could not be loaded on audit report");
+    }
+
+    doc.setDrawColor(30, 41, 59);
+    doc.setLineWidth(0.5);
+    doc.line(pageWidth / 2 - 40, finalSigY, pageWidth / 2 + 40, finalSigY);
+    
+    doc.setTextColor(30, 41, 59);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Gil Santos', pageWidth / 2, finalSigY + 5, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text('Tesoureiro Gavião FC', pageWidth / 2, finalSigY + 10, { align: 'center' });
+    doc.text(`Documento gerado em ${format(new Date(), 'dd/MM/yyyy HH:mm:ss')}`, pageWidth / 2, finalSigY + 16, { align: 'center' });
+
     doc.save(`auditoria-${monthName.replace(/\s+/g, '-')}.pdf`);
   };
 
