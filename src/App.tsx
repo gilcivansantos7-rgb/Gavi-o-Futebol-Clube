@@ -647,17 +647,6 @@ export default function App() {
     }
   };
 
-  const markAllNotificationsAsRead = async () => {
-    const unreadIds = notifications.filter(n => !n.lida).map(n => n.id);
-    if (unreadIds.length === 0) return;
-
-    try {
-      setNotifications(prev => prev.map(n => ({ ...n, lida: true })));
-      await supabase.from('notificacoes').update({ lida: true }).in('id', unreadIds);
-    } catch (e) {
-      console.error('Erro ao marcar todas como lidas', e);
-    }
-  };
 
   const markNotificationAsRead = async (id: string) => {
     try {
