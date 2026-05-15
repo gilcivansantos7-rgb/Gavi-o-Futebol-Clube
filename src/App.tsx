@@ -33,6 +33,7 @@ import {
   ImageOff,
   Settings,
   LogOut,
+  Bell,
   User as UserIcon,
   Shield,
   Key,
@@ -133,7 +134,7 @@ const LINK_MAESTRO = "https://i.postimg.cc/fLwK8Wf8/IMG-9500-removebg-preview.pn
 const LINK_GOLEIRO = "https://i.postimg.cc/W3X7CR9V/IMG-9501-removebg-preview.png";
 const LINK_CLUB_LOGO = "https://i.postimg.cc/8zWqPsrR/Whats-App-Image-2026-05-06-at-10-39-54-removebg-preview.png"; // Novo link do Escudo Gavião Futebol Clube (PNG)
 
-import { AppState, Member, Payment, Expense, OtherIncome, OtherIncomeCategory, MemberStatus, PaymentStatus, PaymentMethod, ExpenseCategory, AssociationInfo, User, UserRole, LoggedUser, Training, MatchPlayer, FinesConfig, OuvidoriaMessage, GalleryPhoto, Notice, NoticeCategory, InventoryCategory, InventoryCondition, InventoryHistory, InventoryItem } from './types';
+import { AppState, Member, Payment, Expense, OtherIncome, OtherIncomeCategory, MemberStatus, PaymentStatus, PaymentMethod, ExpenseCategory, AssociationInfo, User, UserRole, LoggedUser, Training, MatchPlayer, FinesConfig, OuvidoriaMessage, GalleryPhoto, Notice, NoticeCategory, InventoryCategory, InventoryCondition, InventoryHistory, InventoryItem, AppNotification } from './types';
 import { cn, getSecondSaturday, formatCurrency, toCamelCase, toSnakeCase, mapMemberFromDB, mapMemberToDB, mapTrainingFromDB, mapTrainingToDB } from './lib/utils';
 import { supabase } from './lib/supabase';
 
@@ -516,7 +517,8 @@ export default function App() {
           { data: noticesData },
           { data: inventoryData },
           { data: usersData },
-          { data: settingsData }
+          { data: settingsData },
+          { data: notificationsData }
         ] = await Promise.all([
           supabase.from('members').select('*').order('name', { ascending: true }),
           supabase.from('payments').select('*'),
@@ -527,7 +529,8 @@ export default function App() {
           supabase.from('notices').select('*'),
           supabase.from('inventory_items').select('*'),
           supabase.from('users').select('*'),
-          supabase.from('system_settings').select('*').eq('id', 'default').single()
+          supabase.from('system_settings').select('*').eq('id', 'default').single(),
+          supabase.from('notificacoes').select('*').order('criado_em', { ascending: false })
         ]);
 
         const mergedTrainings = trainingsData ? trainingsData.map(t => {
@@ -536,6 +539,8 @@ export default function App() {
             : [];
           return mapTrainingFromDB(t, tPlayers);
         }) : [];
+
+        setNotifications(notificationsData || []);
 
         setState(prev => ({
           ...prev,
@@ -570,7 +575,30 @@ export default function App() {
 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'members' | 'financial' | 'reports' | 'settings' | 'arena' | 'ranking' | 'ouvidoria' | 'gallery' | 'mural' | 'inventory'>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Default closed on mobile
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
   
+  const createNotification = async (titulo: string, mensagem: string, modulo: string) => {
+    try {
+      const newNotif = { titulo, mensagem, modulo };
+      const { data, error } = await supabase.from('notificacoes').insert([newNotif]).select();
+      if (!error && data) {
+        setNotifications(prev => [data[0], ...prev]);
+      }
+    } catch (e) {
+      console.error('Erro ao criar notificação', e);
+    }
+  };
+
+  const markNotificationAsRead = async (id: string) => {
+    try {
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, lida: true } : n));
+      await supabase.from('notificacoes').update({ lida: true }).eq('id', id);
+    } catch (e) {
+      console.error('Erro ao marcar notificação como lida', e);
+    }
+  };
+
   useEffect(() => {
     // Forçar limpeza de dados antigos do banco de dados e registros se solicitado pelo reset
     const hasReset = localStorage.getItem('APP_RESET_V2');
@@ -626,6 +654,7 @@ export default function App() {
       if (error) throw error;
       setOuvidoriaMessages([newMessage, ...ouvidoriaMessages]);
       showFeedback('success', 'Mensagem enviada com sucesso!');
+      createNotification(`Nova Mensagem na Ouvidoria: ${assunto}`, `${currentUser || "Um membro"} enviou uma mensagem na ouvidoria.`, 'Ouvidoria');
     } catch (err: any) {
       console.error(err);
       showFeedback('error', `Erro ao enviar mensagem: ${err.message}`);
@@ -1044,6 +1073,9 @@ export default function App() {
         payments: prev.payments.map(pay => pay.id === paymentId ? { ...pay, ...updates } : pay)
       }));
       showFeedback('success', `Status alterado para ${newStatus}`);
+      if (newStatus === 'Pago') {
+        createNotification('Mensalidade Paga', `Pagamento de ${p.memberName} no valor de ${formatCurrency(finalAmount)}`, 'Financeiro');
+      }
     } catch (err) {
       console.error(err);
       showFeedback('error', 'Erro ao alterar status no banco.');
@@ -1165,6 +1197,7 @@ export default function App() {
         expenses: [...(prev.expenses || []), newExpense]
       }));
       showFeedback('success', 'Despesa salva no banco!');
+      createNotification('Nova Despesa', `${description} no valor de ${formatCurrency(amount)}`, 'Financeiro');
     } catch (err) {
       console.error(err);
       showFeedback('error', 'Erro ao salvar despesa.');
@@ -1219,6 +1252,7 @@ export default function App() {
         otherIncome: [...(prev.otherIncome || []), newIncome]
       }));
       showFeedback('success', 'Receita salva no banco!');
+      createNotification('Nova Receita', `${description} no valor de ${formatCurrency(amount)}`, 'Financeiro');
     } catch (err) {
       console.error(err);
       showFeedback('error', 'Erro ao salvar receita.');
@@ -1557,6 +1591,7 @@ export default function App() {
         notices: [newNotice, ...(prev.notices || [])]
       }));
       showFeedback('success', 'Aviso publicado no mural!');
+      createNotification(`Aviso no Mural: ${notice.title}`, `Publicado por ${notice.author}`, 'Mural');
     } catch (err: any) {
       console.error(err);
       showFeedback('error', `Erro ao publicar aviso: ${err.message}`);
@@ -1972,6 +2007,58 @@ export default function App() {
               <span className="text-[10px] sm:text-xs font-medium text-slate-300">
                 {isAdmin ? 'Admin' : (isSocio ? 'Sócio' : 'Visitante')}
               </span>
+            </div>
+            
+            {/* Notificações */}
+            <div className="relative">
+              <button 
+                onClick={() => setIsNotifOpen(!isNotifOpen)}
+                className="relative p-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-full transition-all"
+              >
+                <Bell size={20} />
+                {notifications.filter(n => !n.lida && (isAdmin || n.modulo === 'Mural' || n.modulo === 'Ouvidoria')).length > 0 && (
+                  <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-[9px] font-bold text-white border-2 border-[#1e293b]">
+                    {notifications.filter(n => !n.lida && (isAdmin || n.modulo === 'Mural' || n.modulo === 'Ouvidoria')).length > 9 ? '9+' : notifications.filter(n => !n.lida && (isAdmin || n.modulo === 'Mural' || n.modulo === 'Ouvidoria')).length}
+                  </span>
+                )}
+              </button>
+
+              {isNotifOpen && (
+                <div className="absolute right-0 mt-2 w-80 bg-slate-800/95 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-2xl overflow-hidden z-[100] transform transition-all origin-top-right">
+                  <div className="p-3 border-b border-slate-700 flex justify-between items-center bg-slate-900/50">
+                    <span className="font-bold text-white text-sm">Central de Avisos</span>
+                    <span className="text-[10px] uppercase font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">
+                      {notifications.filter(n => isAdmin || n.modulo === 'Mural' || n.modulo === 'Ouvidoria').length} Avisos
+                    </span>
+                  </div>
+                  <div className="max-h-80 overflow-y-auto custom-scrollbar p-2 flex flex-col gap-2">
+                    {notifications.filter(n => isAdmin || n.modulo === 'Mural' || n.modulo === 'Ouvidoria').length === 0 ? (
+                      <div className="text-center p-6 text-slate-500">
+                        <Bell size={24} className="mx-auto mb-2 opacity-20" />
+                        <p className="text-sm font-medium">Nenhuma notificação</p>
+                      </div>
+                    ) : (
+                      notifications.filter(n => isAdmin || n.modulo === 'Mural' || n.modulo === 'Ouvidoria').map(notif => (
+                        <div key={notif.id} className={cn("relative p-3 rounded-xl border transition-all", notif.lida ? "bg-slate-900/40 border-slate-800 opacity-60" : "bg-slate-800 border-blue-500/30 shadow-lg")}>
+                          <div className="flex justify-between items-start gap-2 mb-1">
+                            <h4 className="text-xs font-bold text-white leading-tight pr-4">{notif.titulo}</h4>
+                            {!notif.lida && (
+                              <button onClick={() => markNotificationAsRead(notif.id)} className="p-1 text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-full transition-all shrink-0 group">
+                                <Check size={14} className="group-hover:scale-110 transition-transform" />
+                              </button>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-slate-400 leading-tight mb-2">{notif.mensagem}</p>
+                          <div className="flex justify-between items-center mt-2">
+                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">{notif.modulo}</span>
+                            <span className="text-[9px] text-slate-500">{format(parseISO(notif.criado_em), 'dd/MM HH:mm')}</span>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
             
             <img 

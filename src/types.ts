@@ -4,6 +4,15 @@ export type PaymentMethod = 'PIX' | 'Cartão' | 'Dinheiro' | 'Cheque';
 export type ExpenseCategory = 'Campo' | 'Equipamento' | 'Staff' | 'Eventos' | 'Outros';
 export type UserRole = 'admin' | 'socio' | 'visitante';
 
+export interface AppNotification {
+  id: string;
+  titulo: string;
+  mensagem: string;
+  lida: boolean;
+  modulo: string;
+  criado_em: string;
+}
+
 export interface LoggedUser {
   id?: string;
   nome: string;
