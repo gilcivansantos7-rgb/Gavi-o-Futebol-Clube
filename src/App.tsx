@@ -2137,11 +2137,21 @@ export default function App() {
                           key={notif.id} 
                           onClick={(e) => {
                             if (notif.link_destino) {
-                              setActiveTab(notif.link_destino as any);
+                              let dest = notif.link_destino.replace(/^\//, '');
+                              // Mapeamento de aliases comuns para os nomes das tabs
+                              if (dest === 'financeiro') dest = 'financial';
+                              if (dest === 'reclamacoes') dest = 'ouvidoria';
+                              if (dest === 'avisos') dest = 'mural';
+                              
+                              setActiveTab(dest as any);
                               setIsNotifOpen(false);
                             }
                           }}
-                          className={cn("relative p-3 rounded-xl border transition-all", notif.link_destino ? "cursor-pointer hover:bg-slate-700" : "", notif.lida ? "bg-slate-900/40 border-slate-800 opacity-60" : "bg-slate-800 border-blue-500/30 shadow-lg")}
+                          className={cn(
+                            "relative p-3 rounded-xl border transition-all text-left w-full", 
+                            notif.link_destino ? "cursor-pointer hover:bg-slate-700/50" : "", 
+                            notif.lida ? "bg-slate-900/40 border-slate-800 opacity-60" : "bg-slate-800 border-blue-500/30 shadow-lg"
+                          )}
                         >
                           <div className="flex justify-between items-start gap-2 mb-1">
                             <h4 className="text-xs font-bold text-white leading-tight pr-4">{notif.titulo}</h4>
