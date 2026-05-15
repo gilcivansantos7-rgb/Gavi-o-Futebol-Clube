@@ -578,9 +578,9 @@ export default function App() {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   
-  const createNotification = async (titulo: string, mensagem: string, modulo: string) => {
+  const createNotification = async (titulo: string, mensagem: string, modulo: string, linkDestino?: string, referenciaId?: string) => {
     try {
-      const newNotif = { titulo, mensagem, modulo };
+      const newNotif = { titulo, mensagem, modulo, link_destino: linkDestino, referencia_id: referenciaId };
       const { data, error } = await supabase.from('notificacoes').insert([newNotif]).select();
       if (!error && data) {
         setNotifications(prev => [data[0], ...prev]);
@@ -596,6 +596,24 @@ export default function App() {
       await supabase.from('notificacoes').update({ lida: true }).eq('id', id);
     } catch (e) {
       console.error('Erro ao marcar notificação como lida', e);
+    }
+  };
+
+  const markAllNotificationsAsRead = async () => {
+    try {
+      // Filtrar as notificações não lidas que o usuário atual pode ver
+      const pendingNotifs = notifications.filter(n => !n.lida && (isAdmin || n.modulo === 'Mural' || n.modulo === 'Ouvidoria'));
+      if (pendingNotifs.length === 0) return;
+
+      setNotifications(prev => prev.map(n => 
+        pendingNotifs.some(p => p.id === n.id) ? { ...n, lida: true } : n
+      ));
+
+      // Atualizar no banco apenas as que ele marcou como lidas
+      const idsToUpdate = pendingNotifs.map(n => n.id);
+      await supabase.from('notificacoes').update({ lida: true }).in('id', idsToUpdate);
+    } catch (e) {
+      console.error('Erro ao marcar notificações como lidas', e);
     }
   };
 
@@ -654,7 +672,7 @@ export default function App() {
       if (error) throw error;
       setOuvidoriaMessages([newMessage, ...ouvidoriaMessages]);
       showFeedback('success', 'Mensagem enviada com sucesso!');
-      createNotification(`Nova Mensagem na Ouvidoria: ${assunto}`, `${currentUser || "Um membro"} enviou uma mensagem na ouvidoria.`, 'Ouvidoria');
+      createNotification(`Nova Mensagem na Ouvidoria: ${assunto}`, `${currentUser || "Um membro"} enviou uma mensagem na ouvidoria.`, 'Ouvidoria', 'ouvidoria', String(newMessage.id));
     } catch (err: any) {
       console.error(err);
       showFeedback('error', `Erro ao enviar mensagem: ${err.message}`);
@@ -682,6 +700,7 @@ export default function App() {
     try {
       const { error } = await supabase.from('ouvidoria_messages').delete().eq('id', id);
       if (error) throw error;
+      await supabase.from('notificacoes').delete().eq('referencia_id', String(id));
       setOuvidoriaMessages(prev => prev.filter(msg => String(msg.id).trim() !== String(id).trim()));
       alert("Excluído!");
     } catch (err: any) {
@@ -1074,7 +1093,7 @@ export default function App() {
       }));
       showFeedback('success', `Status alterado para ${newStatus}`);
       if (newStatus === 'Pago') {
-        createNotification('Mensalidade Paga', `Pagamento de ${p.memberName} no valor de ${formatCurrency(finalAmount)}`, 'Financeiro');
+        createNotification('Mensalidade Paga', `O usuário ${currentUser || 'Sistema'} registrou o pagamento de ${p.memberName} no valor de ${formatCurrency(finalAmount)}`, 'Financeiro', 'financial', String(paymentId));
       }
     } catch (err) {
       console.error(err);
@@ -1197,7 +1216,7 @@ export default function App() {
         expenses: [...(prev.expenses || []), newExpense]
       }));
       showFeedback('success', 'Despesa salva no banco!');
-      createNotification('Nova Despesa', `${description} no valor de ${formatCurrency(amount)}`, 'Financeiro');
+      createNotification('Nova Despesa Registrada', `O usuário ${currentUser || 'Sistema'} registrou a despesa "${description}" no valor de ${formatCurrency(amount)}`, 'Financeiro', 'financial', expenseId);
     } catch (err) {
       console.error(err);
       showFeedback('error', 'Erro ao salvar despesa.');
@@ -1221,6 +1240,7 @@ export default function App() {
   const deleteExpense = async (id: string) => {
     try {
       await supabase.from('expenses').delete().eq('id', id);
+      await supabase.from('notificacoes').delete().eq('referencia_id', id);
       setState(prev => ({
         ...prev,
         expenses: (prev.expenses || []).filter(e => e.id !== id)
@@ -1252,7 +1272,7 @@ export default function App() {
         otherIncome: [...(prev.otherIncome || []), newIncome]
       }));
       showFeedback('success', 'Receita salva no banco!');
-      createNotification('Nova Receita', `${description} no valor de ${formatCurrency(amount)}`, 'Financeiro');
+      createNotification('Nova Receita Registrada', `O usuário ${currentUser || 'Sistema'} registrou a receita "${description}" no valor de ${formatCurrency(amount)}`, 'Financeiro', 'financial', incomeId);
     } catch (err) {
       console.error(err);
       showFeedback('error', 'Erro ao salvar receita.');
@@ -1262,6 +1282,7 @@ export default function App() {
   const deleteOtherIncome = async (id: string) => {
     try {
       await supabase.from('other_incomes').delete().eq('id', id);
+      await supabase.from('notificacoes').delete().eq('referencia_id', id);
       setState(prev => ({
         ...prev,
         otherIncome: (prev.otherIncome || []).filter(i => i.id !== id)
@@ -1591,7 +1612,7 @@ export default function App() {
         notices: [newNotice, ...(prev.notices || [])]
       }));
       showFeedback('success', 'Aviso publicado no mural!');
-      createNotification(`Aviso no Mural: ${notice.title}`, `Publicado por ${notice.author}`, 'Mural');
+      createNotification(`Aviso no Mural: ${notice.title}`, `Publicado por ${currentUser || notice.author} no mural de avisos`, 'Mural', 'mural', newNotice.id);
     } catch (err: any) {
       console.error(err);
       showFeedback('error', `Erro ao publicar aviso: ${err.message}`);
@@ -1622,6 +1643,7 @@ export default function App() {
     try {
       const { error } = await supabase.from('notices').delete().eq('id', id);
       if (error) throw error;
+      await supabase.from('notificacoes').delete().eq('referencia_id', id);
       setState(prev => ({
         ...prev,
         notices: (prev.notices || []).filter(n => n.id !== id)
@@ -2012,7 +2034,10 @@ export default function App() {
             {/* Notificações */}
             <div className="relative">
               <button 
-                onClick={() => setIsNotifOpen(!isNotifOpen)}
+                onClick={() => {
+                  if (!isNotifOpen) markAllNotificationsAsRead();
+                  setIsNotifOpen(!isNotifOpen);
+                }}
                 className="relative p-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-full transition-all"
               >
                 <Bell size={20} />
@@ -2039,11 +2064,26 @@ export default function App() {
                       </div>
                     ) : (
                       notifications.filter(n => isAdmin || n.modulo === 'Mural' || n.modulo === 'Ouvidoria').map(notif => (
-                        <div key={notif.id} className={cn("relative p-3 rounded-xl border transition-all", notif.lida ? "bg-slate-900/40 border-slate-800 opacity-60" : "bg-slate-800 border-blue-500/30 shadow-lg")}>
+                        <div 
+                          key={notif.id} 
+                          onClick={(e) => {
+                            if (notif.link_destino) {
+                              setActiveTab(notif.link_destino as any);
+                              setIsNotifOpen(false);
+                            }
+                          }}
+                          className={cn("relative p-3 rounded-xl border transition-all", notif.link_destino ? "cursor-pointer hover:bg-slate-700" : "", notif.lida ? "bg-slate-900/40 border-slate-800 opacity-60" : "bg-slate-800 border-blue-500/30 shadow-lg")}
+                        >
                           <div className="flex justify-between items-start gap-2 mb-1">
                             <h4 className="text-xs font-bold text-white leading-tight pr-4">{notif.titulo}</h4>
                             {!notif.lida && (
-                              <button onClick={() => markNotificationAsRead(notif.id)} className="p-1 text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-full transition-all shrink-0 group">
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  markNotificationAsRead(notif.id);
+                                }} 
+                                className="p-1 text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-full transition-all shrink-0 group"
+                              >
                                 <Check size={14} className="group-hover:scale-110 transition-transform" />
                               </button>
                             )}
