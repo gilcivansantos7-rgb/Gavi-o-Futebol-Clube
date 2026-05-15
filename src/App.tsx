@@ -88,18 +88,39 @@ import {
   Pie
 } from 'recharts';
 import { 
-  format, 
+  format as dateFnsFormat, 
   startOfMonth, 
   isSameMonth, 
   isAfter, 
   isBefore, 
   addMonths, 
   subMonths,
-  parseISO,
+  parseISO as dateFnsParseISO,
   endOfMonth,
   eachMonthOfInterval,
   differenceInMonths
 } from 'date-fns';
+
+const parseISO = (dateStr: string | null | undefined): Date => {
+  if (!dateStr) return new Date();
+  let str = String(dateStr);
+  if (str.length === 10) str = `${str}T12:00:00`;
+  else if (str.includes('T00:00:00')) str = `${str.split('T')[0]}T12:00:00`;
+  return dateFnsParseISO(str);
+};
+
+const format = (date: Date | number, formatStr: string, options?: any) => {
+  const d = new Date(date);
+  if (formatStr === 'dd/MM/yyyy') {
+    return new Intl.DateTimeFormat('pt-BR', {
+      timeZone: 'America/Fortaleza',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    }).format(d);
+  }
+  return dateFnsFormat(d, formatStr, options);
+};
 import { ptBR } from 'date-fns/locale';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -2509,7 +2530,7 @@ function GalleryView({ isAdmin, onClearAll }: { isAdmin: boolean, onClearAll: ()
 
                 {/* Date Badge */}
                 <div className="absolute bottom-2 left-2 px-2 py-0.5 bg-black/60 backdrop-blur-md rounded-md text-[8px] font-black text-white uppercase tracking-tighter">
-                  {new Date(photo.date).toLocaleDateString('pt-BR')}
+                  {format(parseISO(photo.date), 'dd/MM/yyyy')}
                 </div>
               </motion.div>
             ))}
@@ -2542,7 +2563,7 @@ function GalleryView({ isAdmin, onClearAll }: { isAdmin: boolean, onClearAll: ()
               <div className="flex items-center justify-between pb-4 border-b border-slate-800">
                 <div className="space-y-1">
                   <p className="text-white font-black text-sm uppercase tracking-tight">Recordação do Gavião FC</p>
-                  <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">{new Date(selectedPhoto.date).toLocaleString('pt-BR')}</p>
+                  <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">{format(parseISO(selectedPhoto.date), 'dd/MM/yyyy')}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <button 
