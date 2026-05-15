@@ -7176,8 +7176,10 @@ function FinancialView({
       startY: 95,
       head: [['Data', 'Descrição', 'Categoria', 'Valor']],
       body: otherIncomeData.length > 0 ? otherIncomeData : [['-', 'Nenhuma outra receita no período', '-', '-']],
+      foot: [['', 'TOTAL DE OUTRAS RECEITAS:', '', formatCurrency(filteredOtherIncome.reduce((acc, i) => acc + i.amount, 0))]],
       theme: 'striped',
       headStyles: { fillColor: [51, 65, 85] },
+      footStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold' },
       styles: { fontSize: 8 },
     });
 
@@ -7197,8 +7199,10 @@ function FinancialView({
       startY: finalY + 5,
       head: [['Data', 'Descrição Detalhada', 'Categoria', 'Valor']],
       body: expenseData.length > 0 ? expenseData : [['-', 'Nenhuma despesa registrada no período', '-', '-']],
+      foot: [['', 'TOTAL DE DESPESAS:', '', formatCurrency(filteredExpenses.reduce((acc, e) => acc + e.amount, 0))]],
       theme: 'grid',
       headStyles: { fillColor: [185, 28, 28] }, // Vermelho para despesas
+      footStyles: { fillColor: [254, 226, 226], textColor: [153, 27, 27], fontStyle: 'bold' }, // Vermelho claro para total
       styles: { fontSize: 8 },
     });
 
