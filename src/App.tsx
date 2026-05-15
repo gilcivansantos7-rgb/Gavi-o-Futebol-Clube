@@ -629,15 +629,33 @@ export default function App() {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   
-  const createNotification = async (titulo: string, mensagem: string, modulo: string) => {
+  const createNotification = async (titulo: string, mensagem: string, modulo: string, linkDestino?: string, referenciaId?: string) => {
     try {
-      const newNotif = { titulo, mensagem, modulo };
+      const newNotif = { 
+        titulo, 
+        mensagem, 
+        modulo, 
+        link_destino: linkDestino, 
+        referencia_id: referenciaId 
+      };
       const { data, error } = await supabase.from('notificacoes').insert([newNotif]).select();
       if (!error && data) {
         setNotifications(prev => [data[0], ...prev]);
       }
     } catch (e) {
       console.error('Erro ao criar notificação', e);
+    }
+  };
+
+  const markAllNotificationsAsRead = async () => {
+    const unreadIds = notifications.filter(n => !n.lida).map(n => n.id);
+    if (unreadIds.length === 0) return;
+
+    try {
+      setNotifications(prev => prev.map(n => ({ ...n, lida: true })));
+      await supabase.from('notificacoes').update({ lida: true }).in('id', unreadIds);
+    } catch (e) {
+      console.error('Erro ao marcar todas como lidas', e);
     }
   };
 
@@ -723,7 +741,7 @@ export default function App() {
       if (error) throw error;
       setOuvidoriaMessages([newMessage, ...ouvidoriaMessages]);
       showFeedback('success', 'Mensagem enviada com sucesso!');
-      createNotification(`Nova Mensagem na Ouvidoria: ${assunto}`, `${currentUser || "Um membro"} enviou uma mensagem na ouvidoria.`, 'Ouvidoria');
+      createNotification(`Nova Mensagem na Ouvidoria: ${assunto}`, `${currentUser || "Um membro"} enviou uma mensagem na ouvidoria.`, 'Ouvidoria', 'ouvidoria', String(newMessage.id));
     } catch (err: any) {
       console.error(err);
       showFeedback('error', `Erro ao enviar mensagem: ${err.message}`);
@@ -751,7 +769,7 @@ export default function App() {
     try {
       const { error } = await supabase.from('ouvidoria_messages').delete().eq('id', id);
       if (error) throw error;
-      // await supabase.from('notificacoes').delete().eq('referencia_id', String(id)); // Desativado para reconciliação básica
+      await supabase.from('notificacoes').delete().eq('referencia_id', String(id));
       setOuvidoriaMessages(prev => prev.filter(msg => String(msg.id).trim() !== String(id).trim()));
       alert("Excluído!");
     } catch (err: any) {
@@ -797,7 +815,7 @@ export default function App() {
     setFeedback({ type, message });
   };
 
-  const currentUser = loggedUser?.name || loggedUser?.email?.split('@')[0] || 'Usuário';
+  const currentUser = loggedUser?.nome || loggedUser?.email?.split('@')[0] || 'Usuário';
   const isAdmin = loggedUser?.role === 'admin';
   const isSocio = !!loggedUser && !isAdmin;
   const isVisitor = !loggedUser;
@@ -1144,7 +1162,7 @@ export default function App() {
       }));
       showFeedback('success', `Status alterado para ${newStatus}`);
       if (newStatus === 'Pago') {
-        createNotification('Mensalidade Paga', `O usuário ${currentUser || 'Sistema'} registrou o pagamento de ${p.memberName} no valor de ${formatCurrency(finalAmount)}`, 'Financeiro');
+        createNotification('Mensalidade Paga', `O usuário ${currentUser || 'Sistema'} registrou o pagamento de ${p.memberName} no valor de ${formatCurrency(finalAmount)}`, 'Financeiro', 'financial', String(paymentId));
       }
     } catch (err) {
       console.error(err);
@@ -1267,7 +1285,7 @@ export default function App() {
         expenses: [...(prev.expenses || []), newExpense]
       }));
       showFeedback('success', 'Despesa salva no banco!');
-      createNotification('Nova Despesa Registrada', `O usuário ${currentUser || 'Sistema'} registrou a despesa "${description}" no valor de ${formatCurrency(amount)}`, 'Financeiro');
+      createNotification('Nova Despesa Registrada', `O usuário ${currentUser || 'Sistema'} registrou a despesa "${description}" no valor de ${formatCurrency(amount)}`, 'Financeiro', 'financial', expenseId);
     } catch (err) {
       console.error(err);
       showFeedback('error', 'Erro ao salvar despesa.');
@@ -1291,7 +1309,7 @@ export default function App() {
   const deleteExpense = async (id: string) => {
     try {
       await supabase.from('expenses').delete().eq('id', id);
-      // await supabase.from('notificacoes').delete().eq('referencia_id', id); // Desativado para reconciliação básica
+      await supabase.from('notificacoes').delete().eq('referencia_id', id);
       setState(prev => ({
         ...prev,
         expenses: (prev.expenses || []).filter(e => e.id !== id)
@@ -1323,7 +1341,7 @@ export default function App() {
         otherIncome: [...(prev.otherIncome || []), newIncome]
       }));
       showFeedback('success', 'Receita salva no banco!');
-      createNotification('Nova Receita Registrada', `O usuário ${currentUser || 'Sistema'} registrou a receita "${description}" no valor de ${formatCurrency(amount)}`, 'Financeiro');
+      createNotification('Nova Receita Registrada', `O usuário ${currentUser || 'Sistema'} registrou a receita "${description}" no valor de ${formatCurrency(amount)}`, 'Financeiro', 'financial', incomeId);
     } catch (err) {
       console.error(err);
       showFeedback('error', 'Erro ao salvar receita.');
@@ -1333,7 +1351,7 @@ export default function App() {
   const deleteOtherIncome = async (id: string) => {
     try {
       await supabase.from('other_incomes').delete().eq('id', id);
-      // await supabase.from('notificacoes').delete().eq('referencia_id', id); // Desativado para reconciliação básica
+      await supabase.from('notificacoes').delete().eq('referencia_id', id);
       setState(prev => ({
         ...prev,
         otherIncome: (prev.otherIncome || []).filter(i => i.id !== id)
@@ -1663,7 +1681,7 @@ export default function App() {
         notices: [newNotice, ...(prev.notices || [])]
       }));
       showFeedback('success', 'Aviso publicado no mural!');
-      createNotification(`Aviso no Mural: ${notice.title}`, `Publicado por ${currentUser || notice.author}`, 'Mural');
+      createNotification(`Aviso no Mural: ${notice.title}`, `Publicado por ${currentUser || notice.author}`, 'Mural', 'mural', newNotice.id);
     } catch (err: any) {
       console.error(err);
       showFeedback('error', `Erro ao publicar aviso: ${err.message}`);
@@ -1694,7 +1712,7 @@ export default function App() {
     try {
       const { error } = await supabase.from('notices').delete().eq('id', id);
       if (error) throw error;
-      // await supabase.from('notificacoes').delete().eq('referencia_id', id); // Desativado para reconciliação básica
+      await supabase.from('notificacoes').delete().eq('referencia_id', id);
       setState(prev => ({
         ...prev,
         notices: (prev.notices || []).filter(n => n.id !== id)
