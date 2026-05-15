@@ -7321,6 +7321,8 @@ function FinancialView({
 
   const handleGenerateAuditReport = () => {
     const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
     const info = associationInfo || { nome: 'Gavião FC', cnpj: '', endereco: '', contato: '' };
     const monthName = format(new Date(filterYear, filterMonth, 1), 'MMMM yyyy', { locale: ptBR });
 
