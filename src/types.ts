@@ -17,10 +17,13 @@ export interface AppNotification {
 
 export interface LoggedUser {
   id?: string;
+  name?: string;
   nome: string;
   email?: string;
   tipo: UserRole;
+  role?: string;
   senha?: string | null;
+  user_metadata?: any;
 }
 
 export interface User {

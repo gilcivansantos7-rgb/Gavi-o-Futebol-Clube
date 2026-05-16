@@ -65,7 +65,6 @@ import {
   ShieldAlert,
   Cloud,
   CloudOff,
-  Bell,
   Megaphone,
   Pin,
   CheckCircle2,
@@ -528,9 +527,28 @@ export default function App() {
 
   async function fetchProfile(uid: string) {
     try {
-      const { data, error } = await supabase.from('users').select('*').eq('id', uid).single();
-      if (error) throw error;
-      setLoggedUser(data);
+      const { data: dbUser, error } = await supabase.from('users').select('*').eq('id', uid).single();
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+
+      if (error && !dbUser) {
+        console.warn("Usuário não encontrado na tabela 'users', usando metadados do Auth");
+        if (authUser) {
+          setLoggedUser({
+            id: authUser.id,
+            name: authUser.user_metadata?.name || authUser.user_metadata?.display_name || authUser.email?.split('@')[0],
+            nome: authUser.user_metadata?.name || authUser.user_metadata?.display_name || authUser.email?.split('@')[0],
+            email: authUser.email,
+            role: authUser.app_metadata?.role || 'user',
+            tipo: (authUser.app_metadata?.role || 'visitante') as any,
+            user_metadata: authUser.user_metadata
+          });
+        }
+      } else {
+        setLoggedUser({
+          ...dbUser,
+          user_metadata: authUser?.user_metadata
+        });
+      }
     } catch (err) {
       console.error("Error fetching profile:", err);
     } finally {
@@ -805,7 +823,7 @@ export default function App() {
     setFeedback({ type, message });
   };
 
-  const currentUser = loggedUser?.nome || loggedUser?.email?.split('@')[0] || 'Usuário';
+  const currentUser = loggedUser?.name || loggedUser?.nome || loggedUser?.user_metadata?.display_name || loggedUser?.user_metadata?.name || loggedUser?.email?.split('@')[0] || 'Usuário';
   const isAdmin = loggedUser?.role === 'admin';
   const isSocio = !!loggedUser && !isAdmin;
   const isVisitor = !loggedUser;
