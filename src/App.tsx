@@ -1525,12 +1525,25 @@ export default function App() {
 
     const activeMembers = state.members.filter(m => m.status === 'Ativo').length;
 
-    const pendingPayments = state.payments.filter(p => 
+    // Pagamentos pendentes considerando a regra do 2º sábado:
+    // Um sócio só é considerado inadimplente APÓS o 2º sábado do mês ter passado.
+    // Antes disso, o pagamento existe mas não gera inadimplência.
+    const allPendingPayments = state.payments.filter(p =>
       p.status?.toLowerCase() === 'pendente' && validMemberIds.has(p.memberId)
     );
+
+    // Para o mapa de inadimplência, só conta pagamentos vencidos (dueDate já passou)
+    const overduePayments = allPendingPayments.filter(p => {
+      if (!p.dueDate) return true; // sem data de vencimento = considera vencido
+      const due = new Date(p.dueDate);
+      // Remove horas para comparação apenas por data
+      const dueDay = new Date(due.getFullYear(), due.getMonth(), due.getDate());
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      return today > dueDay; // só inadimplente APÓS o dia do vencimento
+    });
     
     const delinquencyMap: Record<string, any> = {};
-    pendingPayments.forEach(p => {
+    overduePayments.forEach(p => {
       const memberId = p.memberId;
       if (!delinquencyMap[memberId]) {
         delinquencyMap[memberId] = {
@@ -8188,11 +8201,20 @@ function FinancialView({
               },
               {
                 header: "Status",
-                render: (payment: Payment) => (
-                  <Badge variant={payment.status === 'Pago' ? 'success' : 'danger'}>
-                    {payment.status}
-                  </Badge>
-                )
+                render: (payment: Payment) => {
+                  if (payment.status === 'Pago') {
+                    return <Badge variant="success">Pago</Badge>;
+                  }
+                  // Pendente: verifica se o vencimento (2º sábado) já passou
+                  const now = new Date();
+                  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                  const due = payment.dueDate ? new Date(payment.dueDate) : null;
+                  const dueDay = due ? new Date(due.getFullYear(), due.getMonth(), due.getDate()) : null;
+                  const isOverdue = dueDay ? today > dueDay : true;
+                  return isOverdue
+                    ? <Badge variant="danger">Pendente</Badge>
+                    : <Badge variant="warning">A Pagar</Badge>;
+                }
               },
               {
                 header: "Ação",
@@ -8260,9 +8282,17 @@ function FinancialView({
                       </p>
                     </div>
                   </div>
-                  <Badge variant={payment.status === 'Pago' ? 'success' : 'danger'}>
-                    {payment.status}
-                  </Badge>
+                  {(() => {
+                    if (payment.status === 'Pago') return <Badge variant="success">Pago</Badge>;
+                    const now = new Date();
+                    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                    const due = payment.dueDate ? new Date(payment.dueDate) : null;
+                    const dueDay = due ? new Date(due.getFullYear(), due.getMonth(), due.getDate()) : null;
+                    const isOverdue = dueDay ? today > dueDay : true;
+                    return isOverdue
+                      ? <Badge variant="danger">Pendente</Badge>
+                      : <Badge variant="warning">A Pagar</Badge>;
+                  })()}
                 </div>
                 
                 {payment.status === 'Pago' && (
