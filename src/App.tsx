@@ -877,9 +877,12 @@ export default function App() {
         }));
 
         try {
-          // Tenta salvar no Supabase silenciosamente em segundo plano
+          // Tenta salvar no Supabase em segundo plano
           supabase.from('payments').insert(toSnakeCase(newPayments)).then(({ error }) => {
-             if (error) console.error("Aviso Supabase:", error);
+             if (error) {
+               console.error("Erro Supabase:", error);
+               showFeedback('error', 'Aviso: Falha ao salvar as novas mensalidades no banco. Recarregue a página (F5) para tentar novamente.');
+             }
           });
         } catch (err) {
           console.error("Erro na automação de pagamentos:", err);
