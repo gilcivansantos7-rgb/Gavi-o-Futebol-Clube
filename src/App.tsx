@@ -869,13 +869,18 @@ export default function App() {
       }
 
       if (newPayments.length > 0) {
+        // Atualização Otimista: garante que a lista aparece imediatamente na tela
+        setState(prev => ({
+          ...prev,
+          payments: [...prev.payments, ...newPayments],
+          lastAutomationRun: now.toISOString()
+        }));
+
         try {
-          await supabase.from('payments').insert(toSnakeCase(newPayments));
-          setState(prev => ({
-            ...prev,
-            payments: [...prev.payments, ...newPayments],
-            lastAutomationRun: now.toISOString()
-          }));
+          // Tenta salvar no Supabase silenciosamente em segundo plano
+          supabase.from('payments').insert(toSnakeCase(newPayments)).then(({ error }) => {
+             if (error) console.error("Aviso Supabase:", error);
+          });
         } catch (err) {
           console.error("Erro na automação de pagamentos:", err);
         }
