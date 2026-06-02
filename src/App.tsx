@@ -829,63 +829,61 @@ export default function App() {
   const isVisitor = !loggedUser;
   const isAuthenticated = !!loggedUser;
 
-  // --- Automation Logic (Local Only) ---
+  // --- Automation Logic (Cloud Sync) ---
   useEffect(() => {
     if (!isAdmin) return;
 
-    const runAutomation = () => {
+    const runAutomation = async () => {
       const now = new Date();
-      const lastRun = parseISO(state.lastAutomationRun);
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
       
-      if (!isSameMonth(now, lastRun)) {
-        const currentMonth = now.getMonth();
-        const currentYear = now.getFullYear();
-        
-        const activeMembers = state.members.filter(m => m.status === 'Ativo');
-        const newPayments: Payment[] = [];
+      const activeMembers = state.members.filter(m => m.status === 'Ativo');
+      if (activeMembers.length === 0) return; // Aguarda o carregamento dos membros
 
-        for (const member of activeMembers) {
-          const exists = state.payments.some(p => 
-            p.memberId === member.id && 
-            p.month === currentMonth && 
-            p.year === currentYear
-          );
+      const newPayments: Payment[] = [];
 
-          if (!exists) {
-            const dueDate = getSecondSaturday(currentMonth, currentYear);
-            const paymentId = crypto.randomUUID();
-            newPayments.push({
-              id: paymentId,
-              memberId: member.id,
-              memberName: member.name,
-              month: currentMonth,
-              year: currentYear,
-              amount: member.monthlyFee,
-              status: 'Pendente',
-              dueDate: dueDate.toISOString(),
-              createdAt: new Date().toISOString(),
-              createdBy: 'Sistema'
-            });
-          }
+      for (const member of activeMembers) {
+        const exists = state.payments.some(p => 
+          p.memberId === member.id && 
+          p.month === currentMonth && 
+          p.year === currentYear
+        );
+
+        if (!exists) {
+          const dueDate = getSecondSaturday(currentMonth, currentYear);
+          const paymentId = crypto.randomUUID();
+          newPayments.push({
+            id: paymentId,
+            memberId: member.id,
+            memberName: member.name,
+            month: currentMonth,
+            year: currentYear,
+            amount: member.monthlyFee,
+            status: 'Pendente',
+            dueDate: dueDate.toISOString(),
+            createdAt: new Date().toISOString(),
+            createdBy: 'Sistema'
+          });
         }
+      }
 
-        if (newPayments.length > 0) {
+      if (newPayments.length > 0) {
+        try {
+          await supabase.from('payments').insert(toSnakeCase(newPayments));
           setState(prev => ({
             ...prev,
             payments: [...prev.payments, ...newPayments],
             lastAutomationRun: now.toISOString()
           }));
-        } else {
-          setState(prev => ({
-            ...prev,
-            lastAutomationRun: now.toISOString()
-          }));
+        } catch (err) {
+          console.error("Erro na automação de pagamentos:", err);
         }
       }
     };
 
     runAutomation();
-  }, [isAdmin, state.members, state.payments, state.lastAutomationRun]);
+  }, [isAdmin, state.members, state.payments]);
 
   // --- Handlers (100% Local) ---
   
