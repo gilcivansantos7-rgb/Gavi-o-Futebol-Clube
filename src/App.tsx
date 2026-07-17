@@ -71,7 +71,8 @@ import {
   CalendarDays,
   Package,
   Wrench,
-  Shirt
+  Shirt,
+  RotateCw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -573,74 +574,88 @@ export default function App() {
   });
 
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const loadData = async (silent = false) => {
+    if (!silent) {
+      setIsRefreshing(true);
+    }
+    try {
+      const [
+        { data: membersData },
+        { data: paymentsData },
+        { data: expensesData },
+        { data: otherIncomeData },
+        { data: trainingsData },
+        { data: trainingPlayersData },
+        { data: noticesData },
+        { data: inventoryData },
+        { data: usersData },
+        { data: settingsData },
+        { data: notificationsData }
+      ] = await Promise.all([
+        supabase.from('members').select('*').is('deleted_at', null).order('name', { ascending: true }),
+        supabase.from('payments').select('*'),
+        supabase.from('expenses').select('*'),
+        supabase.from('other_incomes').select('*'),
+        supabase.from('trainings').select('*'),
+        supabase.from('training_players').select('*'),
+        supabase.from('notices').select('*'),
+        supabase.from('inventory_items').select('*'),
+        supabase.from('users').select('*'),
+        supabase.from('system_settings').select('*').eq('id', 'default').single(),
+        supabase.from('notificacoes').select('*').order('criado_em', { ascending: false })
+      ]);
+
+      const mergedTrainings = trainingsData ? trainingsData.map(t => {
+        const tPlayers = trainingPlayersData 
+          ? trainingPlayersData.filter(p => p.training_id === t.id)
+          : [];
+        return mapTrainingFromDB(t, tPlayers);
+      }) : [];
+
+      setNotifications(notificationsData || []);
+
+      setState(prev => ({
+        ...prev,
+        members: membersData ? membersData.map(mapMemberFromDB) : [],
+        payments: paymentsData ? toCamelCase(paymentsData) : [],
+        expenses: expensesData ? toCamelCase(expensesData) : [],
+        otherIncome: otherIncomeData ? toCamelCase(otherIncomeData) : [],
+        trainings: mergedTrainings,
+        notices: noticesData ? toCamelCase(noticesData) : [],
+        inventory: inventoryData ? toCamelCase(inventoryData) : [],
+        users: usersData?.length ? toCamelCase(usersData) : DEFAULT_USERS,
+        initialBalance: settingsData?.initial_balance || 0,
+        finesConfig: {
+          yellowCardValue: settingsData?.fines_yellow_card_value || 5,
+          redCardValue: settingsData?.fines_red_card_value || 10
+        },
+        associationInfo: {
+          nome: settingsData?.association_name || DEFAULT_ASSOCIATION_INFO.nome,
+          cnpj: settingsData?.association_cnpj || DEFAULT_ASSOCIATION_INFO.cnpj,
+          endereco: settingsData?.association_address || DEFAULT_ASSOCIATION_INFO.endereco,
+          contato: settingsData?.association_contact || DEFAULT_ASSOCIATION_INFO.contato
+        }
+      }));
+      if (!silent) {
+        showFeedback('success', 'Dados atualizados com sucesso!');
+      }
+    } catch (err) {
+      console.error("Erro ao carregar do Supabase:", err);
+      if (!silent) {
+        showFeedback('error', 'Falha ao atualizar os dados.');
+      }
+    } finally {
+      if (!silent) {
+        setIsRefreshing(false);
+      }
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    async function loadData() {
-      try {
-        const [
-          { data: membersData },
-          { data: paymentsData },
-          { data: expensesData },
-          { data: otherIncomeData },
-          { data: trainingsData },
-          { data: trainingPlayersData },
-          { data: noticesData },
-          { data: inventoryData },
-          { data: usersData },
-          { data: settingsData },
-          { data: notificationsData }
-        ] = await Promise.all([
-          supabase.from('members').select('*').is('deleted_at', null).order('name', { ascending: true }),
-          supabase.from('payments').select('*'),
-          supabase.from('expenses').select('*'),
-          supabase.from('other_incomes').select('*'),
-          supabase.from('trainings').select('*'),
-          supabase.from('training_players').select('*'),
-          supabase.from('notices').select('*'),
-          supabase.from('inventory_items').select('*'),
-          supabase.from('users').select('*'),
-          supabase.from('system_settings').select('*').eq('id', 'default').single(),
-          supabase.from('notificacoes').select('*').order('criado_em', { ascending: false })
-        ]);
-
-        const mergedTrainings = trainingsData ? trainingsData.map(t => {
-          const tPlayers = trainingPlayersData 
-            ? trainingPlayersData.filter(p => p.training_id === t.id)
-            : [];
-          return mapTrainingFromDB(t, tPlayers);
-        }) : [];
-
-        setNotifications(notificationsData || []);
-
-        setState(prev => ({
-          ...prev,
-          members: membersData ? membersData.map(mapMemberFromDB) : [],
-          payments: paymentsData ? toCamelCase(paymentsData) : [],
-          expenses: expensesData ? toCamelCase(expensesData) : [],
-          otherIncome: otherIncomeData ? toCamelCase(otherIncomeData) : [],
-          trainings: mergedTrainings,
-          notices: noticesData ? toCamelCase(noticesData) : [],
-          inventory: inventoryData ? toCamelCase(inventoryData) : [],
-          users: usersData?.length ? toCamelCase(usersData) : DEFAULT_USERS,
-          initialBalance: settingsData?.initial_balance || 0,
-          finesConfig: {
-            yellowCardValue: settingsData?.fines_yellow_card_value || 5,
-            redCardValue: settingsData?.fines_red_card_value || 10
-          },
-          associationInfo: {
-            nome: settingsData?.association_name || DEFAULT_ASSOCIATION_INFO.nome,
-            cnpj: settingsData?.association_cnpj || DEFAULT_ASSOCIATION_INFO.cnpj,
-            endereco: settingsData?.association_address || DEFAULT_ASSOCIATION_INFO.endereco,
-            contato: settingsData?.association_contact || DEFAULT_ASSOCIATION_INFO.contato
-          }
-        }));
-      } catch (err) {
-        console.error("Erro ao carregar do Supabase:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    loadData();
+    loadData(true);
   }, []);
 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'members' | 'financial' | 'reports' | 'settings' | 'arena' | 'ranking' | 'ouvidoria' | 'gallery' | 'mural' | 'inventory'>('dashboard');
@@ -2140,6 +2155,25 @@ export default function App() {
               </span>
             </div>
             
+            {/* Botão Atualizar */}
+            <button
+              onClick={() => loadData(false)}
+              disabled={isRefreshing}
+              className={cn(
+                "p-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-full transition-all flex items-center justify-center disabled:opacity-50",
+                isRefreshing && "cursor-not-allowed"
+              )}
+              title="Atualizar Dados"
+            >
+              <RotateCw 
+                size={20} 
+                className={cn(
+                  "transition-transform duration-1000",
+                  isRefreshing && "animate-spin"
+                )} 
+              />
+            </button>
+
             {/* Notificações */}
             <div className="relative">
               <button 
