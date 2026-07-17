@@ -75,6 +75,7 @@ export interface Member {
   createdAt: string;
   createdBy?: string; // User name
   badges?: Badge[];
+  deletedAt?: string | null; // ISO string — preenchido = soft-deleted; null/undefined = ativo
 }
 
 export interface Badge {

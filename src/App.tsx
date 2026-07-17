@@ -590,7 +590,7 @@ export default function App() {
           { data: settingsData },
           { data: notificationsData }
         ] = await Promise.all([
-          supabase.from('members').select('*').order('name', { ascending: true }),
+          supabase.from('members').select('*').is('deleted_at', null).order('name', { ascending: true }),
           supabase.from('payments').select('*'),
           supabase.from('expenses').select('*'),
           supabase.from('other_incomes').select('*'),
@@ -962,17 +962,25 @@ export default function App() {
 
   const deleteMember = async (id: string) => {
     try {
-      await supabase.from('payments').delete().eq('member_id', id);
-      await supabase.from('members').delete().eq('id', id);
+      // Soft Delete: marca o sócio como excluído sem remover do banco.
+      // Isso preserva todos os pagamentos, gols, badges e histórico vinculado.
+      const deletedAt = new Date().toISOString();
+      const { error } = await supabase
+        .from('members')
+        .update({ deleted_at: deletedAt })
+        .eq('id', id);
+      if (error) throw error;
+
+      // Remove da lista ativa na UI (o sócio ainda existe no banco)
       setState(prev => ({
         ...prev,
-        members: prev.members.filter(m => m.id !== id),
-        payments: prev.payments.filter(p => p.memberId !== id)
+        members: prev.members.filter(m => m.id !== id)
+        // NÃO removemos os payments do state — dados históricos permanecem
       }));
-      showFeedback('success', 'Sócio excluído!');
+      showFeedback('success', 'Sócio excluído com segurança! Histórico financeiro e estatístico preservado.');
     } catch (err) {
       console.error(err);
-      showFeedback('error', 'Erro ao excluir no banco.');
+      showFeedback('error', 'Erro ao excluir sócio no banco.');
     }
   };
 
