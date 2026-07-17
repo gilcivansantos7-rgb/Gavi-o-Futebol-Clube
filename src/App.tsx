@@ -1515,12 +1515,14 @@ export default function App() {
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
 
-    const validMemberIds = new Set(state.members.map(m => m.id));
+    // IMPORTANTE: NÃO filtrar pagamentos por membros ativos.
+    // Pagamentos de sócios excluídos (soft-delete) devem sempre ser contabilizados
+    // para preservar o histórico financeiro completo e o saldo em caixa correto.
 
     const membershipRevenue = state.payments.filter(p => {
       if (p.status !== 'Pago' || !p.paidAt) return false;
       const d = parseISO(p.paidAt);
-      return d.getMonth() === currentMonth && d.getFullYear() === currentYear && validMemberIds.has(p.memberId);
+      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
     }).reduce((acc, p) => acc + p.amount, 0);
     
     const currentMonthOtherIncome = (state.otherIncome || []).filter(i => {
@@ -1528,8 +1530,10 @@ export default function App() {
       return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
     }).reduce((acc, i) => acc + i.amount, 0);
 
+    // Pendentes: apenas membros ativos (state.members já é filtrado por deleted_at IS NULL)
+    const activeMemberIds = new Set(state.members.map(m => m.id));
     const pending = state.payments
-      .filter(p => p.status === 'Pendente' && p.month === currentMonth && p.year === currentYear && validMemberIds.has(p.memberId))
+      .filter(p => p.status === 'Pendente' && p.month === currentMonth && p.year === currentYear && activeMemberIds.has(p.memberId))
       .reduce((acc, p) => acc + p.amount, 0);
 
     const currentMonthExpenses = (state.expenses || []).filter(e => {
@@ -1539,11 +1543,9 @@ export default function App() {
 
     const activeMembers = state.members.filter(m => m.status === 'Ativo').length;
 
-    // Pagamentos pendentes considerando a regra do 2º sábado:
-    // Um sócio só é considerado inadimplente APÓS o 2º sábado do mês ter passado.
-    // Antes disso, o pagamento existe mas não gera inadimplência.
+    // Inadimplência: apenas sócios ativos (excluídos não geram mais débitos)
     const allPendingPayments = state.payments.filter(p =>
-      p.status?.toLowerCase() === 'pendente' && validMemberIds.has(p.memberId)
+      p.status?.toLowerCase() === 'pendente' && activeMemberIds.has(p.memberId)
     );
 
     // Para o mapa de inadimplência, só conta pagamentos vencidos (dueDate já passou)
@@ -1588,8 +1590,9 @@ export default function App() {
 
     const delinquentMembers = fullDelinquentList.length;
 
+    // Receita total de mensalidades: TODOS os pagamentos Pago, incluindo de ex-sócios
     const totalMembershipIncome = state.payments
-      .filter(p => p.status === 'Pago' && validMemberIds.has(p.memberId))
+      .filter(p => p.status === 'Pago')
       .reduce((acc, p) => acc + p.amount, 0);
     
     const totalOtherIncome = (state.otherIncome || [])
@@ -1632,14 +1635,16 @@ export default function App() {
     }).reverse();
 
     return last6Months.map(m => {
+      // Gráfico: inclui pagamentos de TODOS os sócios (ativos e ex-sócios)
+      // para que o histórico financeiro nunca seja alterado por exclusões
       const paidMembership = state.payments.filter(p => {
         if (p.status !== 'Pago' || !p.paidAt) return false;
         const d = parseISO(p.paidAt);
-        return d.getMonth() === m.month && d.getFullYear() === m.year && state.members.some(mem => mem.id === p.memberId);
+        return d.getMonth() === m.month && d.getFullYear() === m.year;
       }).reduce((acc, p) => acc + p.amount, 0);
 
       const pendingMembership = state.payments.filter(p => 
-        p.status === 'Pendente' && p.month === m.month && p.year === m.year && state.members.some(mem => mem.id === p.memberId)
+        p.status === 'Pendente' && p.month === m.month && p.year === m.year
       ).reduce((acc, p) => acc + p.amount, 0);
       const monthOtherIncome = (state.otherIncome || []).filter(i => {
         const d = parseISO(i.date);
